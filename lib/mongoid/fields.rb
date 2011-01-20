@@ -82,6 +82,7 @@ module Mongoid #:nodoc
       # @since 2.0.0.rc.6
       def inherited(subclass)
         subclass.fields = fields.dup
+        subclass.relations  = relations.dup ## PATCH
       end
 
       protected
