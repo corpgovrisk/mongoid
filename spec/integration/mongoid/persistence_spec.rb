@@ -3,7 +3,7 @@ require "spec_helper"
 describe Mongoid::Persistence do
 
   before do
-    Person.delete_all
+    [ Person, Post ].each(&:delete_all)
   end
 
   before(:all) do
@@ -359,6 +359,79 @@ describe Mongoid::Persistence do
     end
   end
 
+  describe "#update_attribute" do
+
+    let(:post) do
+      Post.new
+    end
+
+    context "when provided a symbol attribute name" do
+
+      context "when the document is valid" do
+
+        before do
+          post.update_attribute(:title, "Testing")
+        end
+
+        it "sets the attribute" do
+          post.title.should == "Testing"
+        end
+
+        it "saves the document" do
+          post.should be_persisted
+        end
+      end
+
+      context "when the document is invalid" do
+
+        before do
+          post.update_attribute(:title, "$invalid")
+        end
+
+        it "sets the attribute" do
+          post.title.should == "$invalid"
+        end
+
+        it "saves the document" do
+          post.should be_persisted
+        end
+      end
+    end
+
+    context "when provided a string attribute name" do
+
+      context "when the document is valid" do
+
+        before do
+          post.update_attribute("title", "Testing")
+        end
+
+        it "sets the attribute" do
+          post.title.should == "Testing"
+        end
+
+        it "saves the document" do
+          post.should be_persisted
+        end
+      end
+
+      context "when the document is invalid" do
+
+        before do
+          post.update_attribute("title", "$invalid")
+        end
+
+        it "sets the attribute" do
+          post.title.should == "$invalid"
+        end
+
+        it "saves the document" do
+          post.should be_persisted
+        end
+      end
+    end
+  end
+
   describe "#update_attributes" do
 
     context "when validation passes" do
@@ -396,6 +469,59 @@ describe Mongoid::Persistence do
 
       it "saves the new record" do
         Person.find(person.id).should_not be_nil
+      end
+    end
+
+    context "when passing in a relation" do
+
+      context "when providing a parent to a referenced in" do
+
+        let!(:person) do
+          Person.create(:ssn => "666-66-6666")
+        end
+
+        let!(:post) do
+          Post.create(:title => "Testing")
+        end
+
+        context "when the relation has not yet been touched" do
+
+          before do
+            post.update_attributes(:person => person)
+          end
+
+          it "sets the instance of the relation" do
+            person.posts.should == [ post ]
+          end
+
+          it "sets properly through method_missing" do
+            person.posts.to_a.should == [ post ]
+          end
+
+          it "persists the reference" do
+            person.posts(true).should == [ post ]
+          end
+        end
+
+        context "when the relation has been touched" do
+
+          before do
+            person.posts
+            post.update_attributes(:person => person)
+          end
+
+          it "sets the instance of the relation" do
+            person.posts.should == [ post ]
+          end
+
+          it "sets properly through method_missing" do
+            person.posts.to_a.should == [ post ]
+          end
+
+          it "persists the reference" do
+            person.posts(true).should == [ post ]
+          end
+        end
       end
     end
   end
