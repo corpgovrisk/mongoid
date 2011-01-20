@@ -9,7 +9,7 @@ module Mongoid # :nodoc:
 
       included do
         cattr_accessor :embedded
-        class_attribute :relations
+        class_inheritable_accessor :relations
         self.embedded = false
         self.relations = {}
 
