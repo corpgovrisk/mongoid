@@ -155,12 +155,8 @@ module Mongoid #:nodoc:
         #
         # @return [ Document, Criteria ] The matching document(s).
         def find(arg, options = {})
-          klass = metadata.klass
-          return klass.criteria.id_criteria(arg) unless arg.is_a?(Symbol)
-          selector = (options[:conditions] || {}).merge(
-            metadata.foreign_key => base.id
-          )
-          klass.find(arg, :conditions => selector)
+          return criteria.id_criteria(arg) unless arg.is_a?(Symbol)
+          criteria.find(arg, :conditions => options[:conditions] || {})
         end
 
         # Instantiate a new references_many relation. Will set the foreign key
@@ -312,7 +308,7 @@ module Mongoid #:nodoc:
           load!(:binding => true) and return super if [].respond_to?(name)
           klass = metadata.klass
           klass.send(:with_scope, criteria) do
-            klass.send(name, *args)
+            criteria.send(name, *args)
           end
         end
 

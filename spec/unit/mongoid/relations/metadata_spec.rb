@@ -68,6 +68,17 @@ describe Mongoid::Relations::Metadata do
     end
   end
 
+  describe "#constraint" do
+
+    let(:metadata) do
+      described_class.new(:class_name => "Person")
+    end
+
+    it "returns the constraint object" do
+      metadata.constraint.should be_a(Mongoid::Relations::Constraint)
+    end
+  end
+
   describe "#class_name" do
 
     context "when class_name provided" do
@@ -298,6 +309,22 @@ describe Mongoid::Relations::Metadata do
         end
 
         context "when references many" do
+
+          context "when an inverse_of is defined" do
+
+            let(:metadata) do
+              described_class.new(
+                :name => :created_streets,
+                :relation => Mongoid::Relations::Referenced::Many,
+                :inverse_class_name => "House",
+                :inverse_of => :creator
+              )
+            end
+
+            it "returns the inverse_of plus suffix" do
+              metadata.foreign_key.should == "creator_id"
+            end
+          end
 
           context "when the class is not namespaced" do
 

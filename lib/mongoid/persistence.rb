@@ -55,6 +55,7 @@ module Mongoid #:nodoc:
     # @return [ TrueClass ] True.
     def remove(options = {})
       if Remove.new(self, options).persist
+        raw_attributes.freeze
         self.destroyed = true
         cascade!
       end; true
@@ -71,7 +72,7 @@ module Mongoid #:nodoc:
     #
     # @return [ true, false ] True if validation passed.
     def save!(options = {})
-      self.class.fail_validate!(self) unless upsert; true
+      self.class.fail_validate!(self) unless upsert(options); true
     end
 
     # Update the document in the datbase.

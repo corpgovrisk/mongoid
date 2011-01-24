@@ -42,8 +42,7 @@ module Mongoid #:nodoc:
             return args
           end
           if args.is_a?(::String)
-            return nil if args.blank?
-            ::BSON::ObjectId(args)
+            ::BSON::ObjectId.from_string(args)
           elsif args.is_a?(::Array)
             args.map{ |a|
               a.is_a?(::BSON::ObjectId) ? a : ::BSON::ObjectId(a)

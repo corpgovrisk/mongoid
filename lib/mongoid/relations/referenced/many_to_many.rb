@@ -7,6 +7,25 @@ module Mongoid # :nodoc:
       # many-to-many between documents in different collections.
       class ManyToMany < Referenced::Many
 
+        # Appends a document or array of documents to the relation. Will set
+        # the parent and update the index in the process.
+        #
+        # @example Append a document.
+        #   person.addresses << address
+        #
+        # @example Push a document.
+        #   person.addresses.push(address)
+        #
+        # @example Concat with other documents.
+        #   perosn.addresses.concat([ address_one, address_two ])
+        #
+        # @param [ Document, Array<Document> ] *args Any number of documents.
+        def <<(*args)
+          options = default_options(args)
+          super(args)
+          base.save if base.persisted? && !options[:binding]
+        end
+
         # Creates a new document on the references many relation. This will
         # save the document if the parent has been persisted.
         #
@@ -92,38 +111,6 @@ module Mongoid # :nodoc:
           target.delete_if { |doc| doc.matches?(selector) }
           scoping = { :_id => { "$in" => base.send(metadata.foreign_key) } }
           metadata.klass.destroy_all(:conditions => selector.merge(scoping))
-        end
-
-        # Find the matchind document on the association, either based on id or
-        # conditions.
-        #
-        # @example Find by an id.
-        #   person.preferences.find(BSON::ObjectId.new)
-        #
-        # @example Find by multiple ids.
-        #   person.preferences.find([ BSON::ObjectId.new, BSON::ObjectId.new ])
-        #
-        # @example Conditionally find all matching documents.
-        #   person.preferences.find(:all, :conditions => { :title => "Sir" })
-        #
-        # @example Conditionally find the first document.
-        #   person.preferences.find(:first, :conditions => { :title => "Sir" })
-        #
-        # @example Conditionally find the last document.
-        #   person.preferences.find(:last, :conditions => { :title => "Sir" })
-        #
-        # @param [ Symbol, BSON::ObjectId, Array<BSON::ObjectId> ] arg The
-        #   argument to search with.
-        # @param [ Hash ] options The options to search with.
-        #
-        # @return [ Document, Criteria ] The matching document(s).
-        def find(arg, options = {})
-          klass = metadata.klass
-          return klass.criteria.id_criteria(arg) unless arg.is_a?(Symbol)
-          selector = (options[:conditions] || {}).merge(
-            "_id" => { "$in" => base.send(metadata.foreign_key) }
-          )
-          klass.find(arg, :conditions => selector)
         end
 
         # Removes all associations between the base document and the target

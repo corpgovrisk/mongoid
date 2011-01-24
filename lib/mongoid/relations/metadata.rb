@@ -6,7 +6,7 @@ module Mongoid # :nodoc:
     # contains everything you could ever possible want to know.
     class Metadata < Hash
 
-      delegate :foreign_key_default, :to => :relation
+      delegate :foreign_key_default, :stores_foreign_key?, :to => :relation
 
       # Gets a relation builder associated with the relation this metadata is
       # for.
@@ -53,6 +53,10 @@ module Mongoid # :nodoc:
       # @since 2.0.0.rc.1
       def class_name
         @class_name ||= (self[:class_name] || classify)
+      end
+
+      def constraint
+        @constraint ||= Constraint.new(self)
       end
 
       # Will determine if the relation is an embedded one or not. Currently
@@ -420,12 +424,16 @@ module Mongoid # :nodoc:
         suffix = relation.foreign_key_suffix
         if relation.stores_foreign_key?
           if relation.macro == :references_and_referenced_in_many
-            name.to_s.singularize << suffix
+            "#{name.to_s.singularize}#{suffix}"
           else
-            name.to_s << suffix
+            "#{name}#{suffix}"
           end
         else
-          polymorphic? ? "#{self[:as]}#{suffix}" : inverse_class_name.foreign_key
+          if polymorphic?
+            "#{self[:as]}#{suffix}"
+          else
+            inverse_of ? "#{inverse_of}#{suffix}" : inverse_class_name.foreign_key
+          end
         end
       end
 

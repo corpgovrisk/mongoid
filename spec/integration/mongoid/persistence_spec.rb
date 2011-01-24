@@ -3,7 +3,7 @@ require "spec_helper"
 describe Mongoid::Persistence do
 
   before do
-    [ Person, Post ].each(&:delete_all)
+    [ Person, Post, Game ].each(&:delete_all)
   end
 
   before(:all) do
@@ -94,6 +94,17 @@ describe Mongoid::Persistence do
 
       it "persists the document" do
         person.should be_persisted
+      end
+    end
+
+    context "when setting the composite key" do
+
+      let(:account) do
+        Account.create!(:name => "Hello")
+      end
+
+      it "saves the document" do
+        account.should be_persisted
       end
     end
   end
@@ -396,6 +407,19 @@ describe Mongoid::Persistence do
           post.should be_persisted
         end
       end
+
+      context "when the document has been destroyed" do
+
+        before do
+          post.delete
+        end
+
+        it "raises an error" do
+          expect {
+            post.update_attribute(:title, "something")
+          }.to raise_error
+        end
+      end
     end
 
     context "when provided a string attribute name" do
@@ -454,6 +478,47 @@ describe Mongoid::Persistence do
 
       it "saves the attributes" do
         from_db.pets.should be_false
+      end
+    end
+
+    context "when the document has been destroyed" do
+
+      let!(:person) do
+        Person.create(:ssn => "717-98-9999")
+      end
+
+      before do
+        person.delete
+      end
+
+      it "raises an error" do
+        expect {
+          person.update_attributes(:title => "something")
+        }.to raise_error
+      end
+    end
+
+    context "when updating through a one-to-one relation" do
+
+      let(:person) do
+        Person.create!(:ssn => "666-77-8888")
+      end
+
+      let(:game) do
+        Game.create(:person => person)
+      end
+
+      before do
+        person.update_attributes!(:ssn => "444-44-4444")
+        game.person.update_attributes!(:ssn => "555-66-7777")
+      end
+
+      let(:from_db) do
+        Person.find(person.id)
+      end
+
+      it "saves the attributes" do
+        person.ssn.should == "555-66-7777"
       end
     end
 

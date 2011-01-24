@@ -2,6 +2,10 @@ require "spec_helper"
 
 describe Mongoid::Relations::Referenced::Many do
 
+  before(:all) do
+    Mongoid.raise_not_found_error = true
+  end
+
   before do
     [ Person, Post, Movie, Rating ].map(&:delete_all)
   end
@@ -734,7 +738,7 @@ describe Mongoid::Relations::Referenced::Many do
       context "when the documents are part of the relation" do
 
         before do
-          Rating.create(:ratable_id => movie.id)
+          Rating.create(:ratable => movie)
         end
 
         it "returns the count from the db" do
@@ -1146,6 +1150,19 @@ describe Mongoid::Relations::Referenced::Many do
 
           it "returns the matching document" do
             post.should == post_one
+          end
+        end
+
+        context "when the id matches but is not scoped to the relation" do
+
+          let(:post) do
+            Post.create(:title => "Unscoped")
+          end
+
+          it "raises an error" do
+            expect {
+              person.posts.find(post.id)
+            }.to raise_error(Mongoid::Errors::DocumentNotFound)
           end
         end
 
@@ -1697,6 +1714,16 @@ describe Mongoid::Relations::Referenced::Many do
 
       it "applies the criteria to the documents" do
         posts.should == [ post_one ]
+      end
+    end
+
+    context "when delegating methods" do
+
+      describe "#distinct" do
+
+        it "returns the distinct values for the fields" do
+          person.posts.distinct(:title).should =~ [ "First",  "Second"]
+        end
       end
     end
   end

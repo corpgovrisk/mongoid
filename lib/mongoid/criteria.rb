@@ -195,6 +195,18 @@ module Mongoid #:nodoc:
     end
     alias :to_ary :to_a
 
+    # Needed to properly get a criteria back as json
+    #
+    # @example Get the criteria as json.
+    #   Person.where(:title => "Sir").as_json
+    #
+    # @param [ Hash ] options Options to pass through to the serializer.
+    #
+    # @return [ String ] The JSON string.
+    def as_json(options = nil)
+      entries.as_json(options)
+    end
+
     class << self
 
       # Encaspulates the behavior of taking arguments and parsing them into a
@@ -297,6 +309,7 @@ module Mongoid #:nodoc:
     def initialize_copy(other)
       @selector = other.selector.dup
       @options = other.options.dup
+      @context = nil
     end
 
     # Update the selector setting the operator on the value for each key in the

@@ -2,6 +2,10 @@ require "spec_helper"
 
 describe Mongoid::Relations::Referenced::ManyToMany do
 
+  before(:all) do
+    Mongoid.raise_not_found_error = true
+  end
+
   before do
     [ Person, Preference ].map(&:delete_all)
   end
@@ -838,6 +842,19 @@ describe Mongoid::Relations::Referenced::ManyToMany do
           end
         end
 
+        context "when the id matches but is not scoped to the relation" do
+
+          let(:preference) do
+            Preference.create(:name => "Unscoped")
+          end
+
+          it "raises an error" do
+            expect {
+              person.preferences.find(preference.id)
+            }.to raise_error(Mongoid::Errors::DocumentNotFound)
+          end
+        end
+
         context "when the id does not match" do
 
           context "when config set to raise error" do
@@ -1124,6 +1141,17 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
       it "applies the criteria to the documents" do
         preferences.should == [ preference_one ]
+      end
+    end
+
+    context "when delegating methods" do
+
+      describe "#distinct" do
+
+        it "returns the distinct values for the fields" do
+          person.preferences.distinct(:name).should =~
+            [ "First",  "Second"]
+        end
       end
     end
   end
