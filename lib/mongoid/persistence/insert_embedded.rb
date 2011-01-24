@@ -31,7 +31,7 @@ module Mongoid #:nodoc:
         if parent.new_record?
           parent.insert
         else
-          update = { document._inserter => { document._position => document.to_hash } }
+          update = { document._inserter => { document._position => document.raw_attributes } }
           collection.update(parent._selector, update, options.merge(:multi => false))
           document.new_record = false
           document.move_changes
