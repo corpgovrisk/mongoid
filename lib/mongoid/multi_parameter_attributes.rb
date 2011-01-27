@@ -1,5 +1,7 @@
 # encoding: utf-8
 module Mongoid #:nodoc:
+
+  # @todo: Durran: This module needs an overhaul.
   module MultiParameterAttributes
     module Errors
       # Raised when an error occurred while doing a mass assignment to an attribute through the
@@ -64,9 +66,9 @@ module Mongoid #:nodoc:
 
     def instantiate_object(klass, values_with_empty_parameters)
       return nil if values_with_empty_parameters.all? { |v| v.nil? }
-      
+
       values = values_with_empty_parameters.collect { |v| v.nil? ? 1 : v }
-      
+
       if klass == DateTime || klass == Date || klass == Time
         klass.send(:convert_to_time, values)
       elsif klass
