@@ -114,14 +114,11 @@ module Mongoid #:nodoc:
     def initialize(attrs = nil)
       @new_record = true
       @attributes = default_attributes
-      # @todo: Durran: We know the document is polymorphic here but we have no
-      #   metadata... Can we pass the document to the field setter and get the
-      #   foreign key setter to set the type?
       process(attrs) do |document|
         yield self if block_given?
         identify
-        run_callbacks(:initialize) { document }
       end
+      run_callbacks(:initialize) { self }
     end
 
     # Return the attributes hash.
@@ -251,6 +248,11 @@ module Mongoid #:nodoc:
       # @return [ Array<Class> ] All subclasses of the current document.
       def _types
         @_type ||= [descendants + [self]].flatten.uniq.map(&:to_s)
+      end
+
+      # Set the i18n scope to overwrite ActiveModel.
+      def i18n_scope
+        :mongoid
       end
     end
   end
