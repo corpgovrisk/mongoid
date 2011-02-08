@@ -547,6 +547,31 @@ describe Mongoid::Relations::Referenced::ManyToMany do
         end
       end
     end
+
+    context "when the inverse relation is not defined" do
+
+      context "when documents have been persisted" do
+
+        let!(:house) do
+          person.houses.create(:name => "Wayne Manor")
+        end
+
+        it "returns the number of persisted documents" do
+          person.houses.count.should == 1
+        end
+      end
+
+      context "when documents have not been persisted" do
+
+        let!(:house) do
+          person.houses.build(:name => "Ryugyong Hotel")
+        end
+
+        it "returns 0" do
+          person.preferences.count.should == 0
+        end
+      end
+    end
   end
 
   [ :create, :create! ].each do |method|
@@ -716,6 +741,23 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
       it "does not modify the keys" do
         person.preference_ids.should == [ preference_one.id, preference_two.id ]
+      end
+    end
+
+    context "when :dependent => :nullify is set" do
+      context "when :inverse_of is set" do
+      
+        let(:event) do
+          Event.create
+        end
+
+        before do
+          person.administrated_events << [event]
+        end
+
+        it "delete document" do
+          event.delete.should be_true
+        end
       end
     end
   end
@@ -1151,6 +1193,17 @@ describe Mongoid::Relations::Referenced::ManyToMany do
         it "returns the distinct values for the fields" do
           person.preferences.distinct(:name).should =~
             [ "First",  "Second"]
+        end
+
+        context "when the inverse relation is not defined" do
+
+          let!(:house) do
+            person.houses.create(:name => "Wayne Manor")
+          end
+
+          it "returns the distinct values for the fields" do
+            person.houses.distinct(:name).should == [ house.name ]
+          end
         end
       end
     end
