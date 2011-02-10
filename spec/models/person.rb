@@ -1,5 +1,6 @@
 class Person
   include Mongoid::Document
+  include Mongoid::MultiParameterAttributes
   include Mongoid::Timestamps
   include Mongoid::Versioning
 
@@ -100,6 +101,8 @@ class Person
     :class_name => 'Event',
     :inverse_of => :administrators,
     :dependent  => :nullify
+
+  scope :minor, where(:age.lt => 18)
 
   def score_with_rescoring=(score)
     @rescored = score.to_i + 20

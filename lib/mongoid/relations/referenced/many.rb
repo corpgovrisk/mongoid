@@ -104,10 +104,11 @@ module Mongoid #:nodoc:
         #
         # @return [ Integer ] The number of documents deleted.
         def delete_all(conditions = nil)
+          raise_mixed if klass.embedded?
           selector = (conditions || {})[:conditions] || {}
           target.delete_if { |doc| doc.matches?(selector) }
           metadata.klass.delete_all(
-            :conditions => selector.merge(metadata.foreign_key => base.id)
+            :conditions => criteria.selector.merge(selector)
           )
         end
 
@@ -124,10 +125,11 @@ module Mongoid #:nodoc:
         #
         # @return [ Integer ] The number of documents destroyd.
         def destroy_all(conditions = nil)
+          raise_mixed if klass.embedded?
           selector = (conditions || {})[:conditions] || {}
           target.delete_if { |doc| doc.matches?(selector) }
           metadata.klass.destroy_all(
-            :conditions => selector.merge(metadata.foreign_key => base.id)
+            :conditions => criteria.selector.merge(selector)
           )
         end
 
@@ -182,6 +184,7 @@ module Mongoid #:nodoc:
         #
         # @since 2.0.0.rc.5
         def load!(options = {})
+          raise_mixed if klass.embedded?
           tap do |relation|
             unless relation.loaded?
               relation.target = target.entries
@@ -288,6 +291,7 @@ module Mongoid #:nodoc:
         #
         # @return [ Criteria ] A new criteria.
         def criteria
+          raise_mixed if klass.embedded?
           metadata.klass.where(metadata.foreign_key => base.id)
         end
 
@@ -307,21 +311,6 @@ module Mongoid #:nodoc:
           klass.send(:with_scope, criteria) do
             criteria.send(name, *args)
           end
-        end
-
-        # When the base is not yet saved and the user calls create or create!
-        # on the relation, this error will get raised.
-        #
-        # @example Raise the error.
-        #   relation.raise_unsaved(post)
-        #
-        # @param [ Document ] doc The child document getting created.
-        #
-        # @raise [ Errors::UnsavedDocument ] The error.
-        #
-        # @since 2.0.0.rc.6
-        def raise_unsaved(doc)
-          raise Errors::UnsavedDocument.new(base, doc)
         end
 
         class << self
