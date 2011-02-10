@@ -29,7 +29,7 @@ module Mongoid #:nodoc:
     #
     # @return [ true, false ] True if successful, false if not.
     def destroy(options = {})
-      run_callbacks(:destroy) { remove(options) }
+      run_callbacks(:destroy) { delete(options) }
     end
 
     # Insert a new document into the database. Will return the document

@@ -51,6 +51,7 @@ module Mongoid #:nodoc:
       now = Time.now
       collection.update({ :_id => self.id }, { '$set' => { :deleted_at => Time.now } })
       @attributes["deleted_at"] = now
+      cascade!
       true
     end
 
