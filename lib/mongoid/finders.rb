@@ -28,7 +28,7 @@ module Mongoid #:nodoc:
     #
     # <tt>Person.count(:conditions => { :attribute => "value" })</tt>
     def count(*args)
-      Criteria.translate(self, false, *args).count
+      find(:all, *args).count
     end
 
     # Returns true if there are on document in database based on the
@@ -36,17 +36,7 @@ module Mongoid #:nodoc:
     #
     # <tt>Person.exists?(:conditions => { :attribute => "value" })</tt>
     def exists?(*args)
-      Criteria.translate(self, false, *args).limit(1).count == 1
-    end
-
-    # Helper to initialize a new +Criteria+ object for this class, or return
-    # the currently scoped +Criteria+ object.
-    #
-    # Example:
-    #
-    # <tt>Person.criteria</tt>
-    def criteria(embedded = false)
-      scope_stack.last || Criteria.new(self, embedded)
+       find(:all, *args).limit(1).count == 1
     end
 
     # Find a +Document+ in several different ways.
@@ -71,16 +61,7 @@ module Mongoid #:nodoc:
     #
     # A document or criteria.
     def find(*args)
-      raise Errors::InvalidOptions.new(
-        :calling_document_find_with_nil_is_invalid, {}
-      ) if args[0].nil?
-      type, criteria = Criteria.parse!(self, false, *args)
-      case type
-      when :first then return criteria.one
-      when :last then return criteria.last
-      else
-        return criteria
-      end
+      criteria.find(*args)
     end
 
     # Find the first +Document+ given the conditions, or creates a new document
@@ -91,8 +72,8 @@ module Mongoid #:nodoc:
     # args: A +Hash+ of attributes
     #
     # <tt>Person.find_or_create_by(:attribute => "value")</tt>
-    def find_or_create_by(attrs = {})
-      find_or(:create, attrs)
+    def find_or_create_by(attrs = {}, &block)
+      find_or(:create, attrs, &block)
     end
 
     # Find the first +Document+ given the conditions, or instantiates a new document
@@ -103,8 +84,8 @@ module Mongoid #:nodoc:
     # args: A +Hash+ of attributes
     #
     # <tt>Person.find_or_initialize_by(:attribute => "value")</tt>
-    def find_or_initialize_by(attrs = {})
-      find_or(:new, attrs)
+    def find_or_initialize_by(attrs = {}, &block)
+      find_or(:new, attrs, &block)
     end
 
     # Find the first +Document+ given the conditions.
@@ -143,31 +124,13 @@ module Mongoid #:nodoc:
     #
     # Returns paginated array of docs.
     def paginate(params = {})
-      Criteria.translate(self, false, params).paginate
+      find(:all, params).paginate
     end
 
     protected
     # Find the first object or create/initialize it.
-    def find_or(method, attrs = {})
-      first(:conditions => attrs) || send(method, attrs)
-    end
-
-    # Initializes and returns the current scope stack.
-    def scope_stack
-      scope_stack_for = Thread.current[:mongoid_scope_stack] ||= {}
-      scope_stack_for[object_id] ||= []
-    end
-
-    # Pushes the provided criteria onto the scope stack, and removes it after the
-    # provided block is yielded.
-    def with_scope(criteria)
-      scope_stack = self.scope_stack
-      scope_stack << criteria
-      begin
-        yield criteria
-      ensure
-        scope_stack.pop
-      end
+    def find_or(method, attrs = {}, &block)
+      first(:conditions => attrs) || send(method, attrs, &block)
     end
   end
 end

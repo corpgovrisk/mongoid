@@ -29,6 +29,21 @@ describe Mongoid::Document do
     end
   end
 
+  context "when setting bson id fields to empty strings" do
+
+    let(:post) do
+      Post.new
+    end
+
+    before do
+      post.person_id = ""
+    end
+
+    it "converts them to nil" do
+      post.person_id.should be_nil
+    end
+  end
+
   context "creating anonymous documents" do
 
     context "when defining collection" do
@@ -189,52 +204,6 @@ describe Mongoid::Document do
     end
   end
 
-  context ".find_or_create_by" do
-
-    before do
-      @person = Person.create(:title => "Senior")
-    end
-
-    context "when the document is found" do
-
-      it "returns the document" do
-        Person.find_or_create_by(:title => "Senior").should == @person
-      end
-    end
-
-    context "when the document is not found" do
-
-      it "creates a new document" do
-        person = Person.find_or_create_by(:title => "Senorita", :ssn => "1234567")
-        person.title.should == "Senorita"
-        person.should_not be_a_new_record
-      end
-    end
-  end
-
-  context ".find_or_initialize_by" do
-
-    before do
-      @person = Person.create(:title => "Senior")
-    end
-
-    context "when the document is found" do
-
-      it "returns the document" do
-        Person.find_or_initialize_by(:title => "Senior").should == @person
-      end
-    end
-
-    context "when the document is not found" do
-
-      it "returns a new document" do
-        person = Person.find_or_initialize_by(:title => "Senorita")
-        person.title.should == "Senorita"
-        person.should be_a_new_record
-      end
-    end
-  end
-
   describe "#find" do
 
     before do
@@ -323,7 +292,7 @@ describe Mongoid::Document do
     end
 
     it "returns a proper count" do
-      @criteria = Mongoid::Criteria.translate(Person, false, { :per_page => 5, :page => 1 })
+      @criteria = Person.find(:all, { :per_page => 5, :page => 1 })
       @criteria.count.should == 10
     end
 

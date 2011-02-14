@@ -142,12 +142,26 @@ describe Mongoid::Criterion::Inclusion do
 
       context "when the id is found" do
 
-        let!(:from_db) do
-          Person.where(:title => "Sir").find(person.id)
+        context "when the additional criteria matches" do
+
+          let!(:from_db) do
+            Person.where(:title => "Sir").find(person.id)
+          end
+
+          it "returns the matching document" do
+            from_db.should == person
+          end
         end
 
-        it "returns the matching document" do
-          from_db.should == person
+        context "when the additional criteria does not match" do
+
+          let(:from_db) do
+            Person.where(:title => "Madam").find(person.id)
+          end
+
+          it "raises a not found error" do
+            expect { from_db }.to raise_error(Mongoid::Errors::DocumentNotFound)
+          end
         end
       end
 
@@ -226,6 +240,33 @@ describe Mongoid::Criterion::Inclusion do
           end
         end
       end
+    end
+  end
+
+  describe "#near" do
+
+    let!(:berlin) do
+      Bar.create(:location => [ 52.30, 13.25 ])
+    end
+
+    let!(:prague) do
+      Bar.create(:location => [ 50.5, 14.26 ])
+    end
+
+    let!(:paris) do
+      Bar.create(:location => [ 48.48, 2.20 ])
+    end
+
+    let(:bars) do
+      Bar.near(:location => [ 41.23, 2.9 ])
+    end
+
+    before do
+      Bar.create_indexes
+    end
+
+    it "returns the documents sorted closest to furthest" do
+      bars.should == [ paris, prague, berlin ]
     end
   end
 
