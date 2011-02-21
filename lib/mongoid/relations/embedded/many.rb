@@ -6,6 +6,31 @@ module Mongoid # :nodoc:
       # This class handles the behaviour for a document that embeds many other
       # documents within in it as an array.
       class Many < Relations::Many
+        include Atomic
+
+        # Appends a document or array of documents to the relation. Will set
+        # the parent and update the index in the process.
+        #
+        # @example Append a document.
+        #   person.addresses << address
+        #
+        # @example Push a document.
+        #   person.addresses.push(address)
+        #
+        # @example Concat with other documents.
+        #   person.addresses.concat([ address_one, address_two ])
+        #
+        # @param [ Document, Array<Document> ] *args Any number of documents.
+        def <<(*args)
+          options = default_options(args)
+          atomically(:$pushAll) do
+            args.flatten.each do |doc|
+              return doc unless doc
+              append(doc, options)
+              doc.save if base.persisted? && !options[:binding]
+            end
+          end
+        end
 
         # Binds the base object to the inverse of the relation. This is so we
         # are referenced to the actual objects themselves and dont hit the
@@ -26,7 +51,9 @@ module Mongoid # :nodoc:
         # @since 2.0.0.rc.1
         def bind(options = {})
           binding.bind(options)
-          target.each(&:save) if base.persisted? && !options[:binding]
+          if base.persisted? && !options[:binding]
+            atomically(:$set) { target.each(&:save) }
+          end
         end
 
         # Bind the inverse relation between a single document in this proxy
@@ -128,7 +155,7 @@ module Mongoid # :nodoc:
         #
         # @return [ Integer ] The number of documents deleted.
         def delete_all(conditions = {})
-          remove_all(conditions, false)
+          atomically(:$pull) { remove_all(conditions, false) }
         end
 
         # Destroy all the documents in the association whilst running callbacks.
@@ -143,7 +170,7 @@ module Mongoid # :nodoc:
         #
         # @return [ Integer ] The number of documents destroyed.
         def destroy_all(conditions = {})
-          remove_all(conditions, true)
+          atomically(:$pull) { remove_all(conditions, true) }
         end
 
         # Finds a document in this association through several different
@@ -238,10 +265,9 @@ module Mongoid # :nodoc:
           tap do |relation|
             relation.target = new_target || []
             if !new_target.blank?
-              unbind(old_target, options)
-              bind(options)
+              atomically(:$set) { rebind(old_target, options) }
             else
-              unbind(old_target, options)
+              atomically(:$unset) { unbind(old_target, options) }
             end
           end
         end
@@ -381,6 +407,22 @@ module Mongoid # :nodoc:
             end
             reindex
           end
+        end
+
+        # Convenience method to clean up the substitute code. Unbinds the old
+        # target and reindexes.
+        #
+        # @example Rebind the relation.
+        #   relation.rebind([])
+        #
+        # @param [ Array<Document> ] old_target The old target.
+        # @param [ Hash ] options The options passed to substitute.
+        #
+        # @since 2.0.0
+        def rebind(old_target, options)
+          reindex
+          unbind(old_target, options)
+          bind(options)
         end
 
         class << self

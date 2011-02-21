@@ -109,6 +109,33 @@ describe Mongoid::Relations::Embedded::Many do
         end
       end
 
+      context "when appending more than one document at once" do
+
+        let(:person) do
+          Person.create(:ssn => "234-44-4432")
+        end
+
+        let(:address_one) do
+          Address.new
+        end
+
+        let(:address_two) do
+          Address.new
+        end
+
+        before do
+          person.addresses.send(method, [ address_one, address_two ])
+        end
+
+        it "saves the first document" do
+          address_one.should be_persisted
+        end
+
+        it "saves the second document" do
+          address_two.should be_persisted
+        end
+      end
+
       context "when the parent and child have a cyclic relation" do
 
         context "when the parent is a new record" do
@@ -436,12 +463,44 @@ describe Mongoid::Relations::Embedded::Many do
           person.addresses.should be_empty
         end
 
+        it "sets the relation to empty in the database" do
+          person.reload.addresses.should be_empty
+        end
+
         it "removed the inverse relation" do
           address.addressable.should be_nil
         end
 
         it "deletes the child document" do
           address.should be_destroyed
+        end
+      end
+
+      context "when setting on a reload" do
+
+        let(:person) do
+          Person.create(:ssn => "437-11-1112")
+        end
+
+        let(:address) do
+          Address.new
+        end
+
+        let(:reloaded) do
+          person.reload
+        end
+
+        before do
+          person.reload.addresses = [ address ]
+          person.reload.addresses = nil
+        end
+
+        it "sets the relation to empty" do
+          person.addresses.should be_empty
+        end
+
+        it "sets the relation to empty in the database" do
+          reloaded.addresses.should be_empty
         end
       end
     end
@@ -914,8 +973,8 @@ describe Mongoid::Relations::Embedded::Many do
 
         context "when conditions are provided" do
 
-          before do
-            @deleted = person.addresses.send(
+          let!(:deleted) do
+            person.addresses.send(
               method,
               :conditions => { :street => "Bond" }
             )
@@ -926,14 +985,14 @@ describe Mongoid::Relations::Embedded::Many do
           end
 
           it "returns the number deleted" do
-            @deleted.should == 1
+            deleted.should == 1
           end
         end
 
         context "when conditions are not provided" do
 
-          before do
-            @deleted = person.addresses.send(method)
+          let!(:deleted) do
+            person.addresses.send(method)
           end
 
           it "removes all documents" do
@@ -941,7 +1000,7 @@ describe Mongoid::Relations::Embedded::Many do
           end
 
           it "returns the number deleted" do
-            @deleted.should == 2
+            deleted.should == 2
           end
         end
       end
@@ -965,8 +1024,12 @@ describe Mongoid::Relations::Embedded::Many do
             )
           end
 
-          it "deletes the matching documents from the db" do
+          it "deletes the matching documents" do
             person.addresses.count.should == 1
+          end
+
+          it "deletes the matching documents from the db" do
+            person.reload.addresses.count.should == 1
           end
 
           it "returns the number deleted" do
@@ -976,16 +1039,20 @@ describe Mongoid::Relations::Embedded::Many do
 
         context "when conditions are not provided" do
 
-          before do
-            @deleted = person.addresses.send(method)
+          let!(:deleted) do
+            person.addresses.send(method)
           end
 
-          it "deletes all the documents from the db" do
+          it "deletes all the documents" do
             person.addresses.count.should == 0
           end
 
+          it "deletes all the documents from the db" do
+            person.reload.addresses.count.should == 0
+          end
+
           it "returns the number deleted" do
-            @deleted.should == 2
+            deleted.should == 2
           end
         end
 
