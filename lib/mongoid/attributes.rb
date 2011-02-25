@@ -8,34 +8,6 @@ module Mongoid #:nodoc:
   module Attributes
     include Processing
 
-    # Returns the object type. This corresponds to the name of the class that
-    # this document is, which is used in determining the class to
-    # instantiate in various cases.
-    #
-    # @example Get the type.
-    #   person._type
-    #
-    # @return [ String ] The name of the class the document is.
-    #
-    # @since 1.0.0
-    def _type
-      @attributes["_type"]
-    end
-
-    # Set the type of the document. This should be the name of the class.
-    #
-    # @example Set the type
-    #   person._type = "Person"
-    #
-    # @param [ String ] new_type The name of the class.
-    #
-    # @return [ String ] the new type.
-    #
-    # @since 1.0.0
-    def _type=(new_type)
-      @attributes["_type"] = new_type
-    end
-
     # Determine if an attribute is present.
     #
     # @example Is the attribute present?
@@ -49,35 +21,6 @@ module Mongoid #:nodoc:
     def attribute_present?(name)
       !read_attribute(name).blank?
     end
-
-    # Get the id associated with this object. This will pull the _id value out
-    # of the attributes.
-    #
-    # @example Get the id.
-    #   person.id
-    #
-    # @return [ BSON::ObjectId, String ] The id of the document.
-    #
-    # @since 1.0.0
-    def id
-      @attributes["_id"]
-    end
-    alias :_id :id
-
-    # Set the id of the document to a new one.
-    #
-    # @example Set the id.
-    #   person.id = BSON::ObjectId.new
-    #
-    # @param [ BSON::ObjectId, String ] new_id The new id.
-    #
-    # @return [ BSON::ObjectId, String ] The new id.
-    #
-    # @since 1.0.0
-    def id=(new_id)
-      @attributes["_id"] = _id_type.set(new_id)
-    end
-    alias :_id= :id=
 
     # Read a value from the document attributes. If the value does not exist
     # it will return nil.

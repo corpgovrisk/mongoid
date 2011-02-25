@@ -9,6 +9,12 @@ module Mongoid #:nodoc
       # Set up the class attributes that must be available to all subclasses.
       # These include defaults, fields
       delegate :defaults, :fields, :to => "self.class"
+
+      field(:_type, :type => String)
+      field(:_id, :type => BSON::ObjectId)
+
+      alias :id :_id
+      alias :id= :_id=
     end
 
     module ClassMethods #:nodoc

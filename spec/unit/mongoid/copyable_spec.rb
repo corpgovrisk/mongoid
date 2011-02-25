@@ -2,111 +2,121 @@ require "spec_helper"
 
 describe Mongoid::Copyable do
 
-  describe "#clone" do
-
-    let(:person) do
-      Person.new(:title => "Sir")
-    end
-
-    before do
-      person.new_record = false
-      person.addresses << Address.new(:street => "Bond")
-    end
-
-    context "when versions exist" do
-
-      let(:cloned) do
-        person.clone
-      end
-
-      before do
-        person[:versions] = [ { :number => 1 } ]
-      end
-
-      it "returns a new document" do
-        cloned.should_not be_persisted
-      end
-
-      it "has an id" do
-        cloned.id.should_not be_nil
-      end
-
-      it "has a different id from the original" do
-        cloned.id.should_not == person.id
-      end
-
-      it "does not clone the versions" do
-        cloned[:versions].should be_nil
-      end
-
-      it "unmemoizes the relations" do
-        cloned.addresses.should_not be_eql(person.addresses)
-      end
-
-      it "returns a new instance" do
-        cloned.should_not be_eql(person)
-      end
-
-      Mongoid::Copyable::COPYABLES.each do |name|
-
-        it "dups #{name}" do
-          cloned.instance_variable_get(name).should_not
-            be_eql(person.instance_variable_get(name))
-        end
-      end
-    end
+  before do
+    Person.delete_all
   end
 
-  describe "#dup" do
+  [ :clone, :dup ].each do |method|
 
-    let(:person) do
-      Person.new(:title => "Sir")
-    end
+    describe "##{method}" do
 
-    before do
-      person.new_record = false
-      person.addresses << Address.new(:street => "Bond")
-    end
+      let(:person) do
+        Person.new(:title => "Sir", :ssn => "234-33-3123")
+      end
 
-    context "when versions exist" do
+      let!(:address) do
+        person.addresses.build(:street => "Bond")
+      end
 
-      let(:duped) do
-        person.dup
+      let!(:name) do
+        person.build_name(:first_name => "Judy")
+      end
+
+      let!(:posts) do
+        person.posts.build(:title => "testing")
+      end
+
+      let!(:game) do
+        person.build_game(:name => "Tron")
       end
 
       before do
-        person[:versions] = [ { :number => 1 } ]
+        person.new_record = false
       end
 
-      it "returns a new document" do
-        duped.should_not be_persisted
-      end
+      context "when versions exist" do
 
-      it "has an id" do
-        duped.id.should_not be_nil
-      end
+        let(:copy) do
+          person.send(method)
+        end
 
-      it "has a different id from the original" do
-        duped.id.should_not == person.id
-      end
+        before do
+          person[:versions] = [ { :number => 1 } ]
+        end
 
-      it "does not clone the versions" do
-        duped[:versions].should be_nil
-      end
+        it "returns a new document" do
+          copy.should_not be_persisted
+        end
 
-      it "unmemoizes the relations" do
-        duped.addresses.should_not be_eql(person.addresses)
-      end
+        it "has an id" do
+          copy.id.should_not be_nil
+        end
 
-      it "returns a new instance" do
-        duped.should_not be_eql(person)
-      end
+        it "has a different id from the original" do
+          copy.id.should_not == person.id
+        end
 
-      Mongoid::Copyable::COPYABLES.each do |name|
+        it "does not copy the versions" do
+          copy[:versions].should be_nil
+        end
 
-        it "dups #{name}" do
-          duped.instance_variable_get(name).should_not
-            be_eql(person.instance_variable_get(name))
+        it "returns a new instance" do
+          copy.should_not be_eql(person)
+        end
+
+        it "copys embeds many documents" do
+          copy.addresses.should == person.addresses
+        end
+
+        it "creates new embeds many instances" do
+          copy.addresses.should_not equal(person.addresses)
+        end
+
+        it "copys embeds one documents" do
+          copy.name.should == person.name
+        end
+
+        it "creates a new embeds one instance" do
+          copy.name.should_not equal(person.name)
+        end
+
+        it "does not copy referenced many documents" do
+          copy.posts.should be_empty
+        end
+
+        it "does not copy references one documents" do
+          copy.game.should be_nil
+        end
+
+        Mongoid::Copyable::COPYABLES.each do |name|
+
+          it "dups #{name}" do
+            copy.instance_variable_get(name).should_not
+              be_eql(person.instance_variable_get(name))
+          end
+        end
+
+        context "when saving the copy" do
+
+          let(:reloaded) do
+            copy.reload
+          end
+
+          before do
+            copy.save
+          end
+
+          it "persists the attributes" do
+            reloaded.title.should == "Sir"
+          end
+
+          it "persists the embeds many relation" do
+            reloaded.addresses.should == person.addresses
+          end
+
+          it "persists the embeds one relation" do
+            reloaded.name.should == person.name
+          end
         end
       end
     end
