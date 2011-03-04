@@ -123,6 +123,45 @@ describe Mongoid::Relations::Referenced::ManyToMany do
           it "adds the document to the target" do
             person.preferences.count.should == 1
           end
+
+          context "when documents already exist on the relation" do
+
+            let(:preference_two) do
+              Preference.new
+            end
+
+            before do
+              person.preferences.send(method, preference_two)
+            end
+
+            it "adds the documents to the relation" do
+              person.preferences.should == [ preference, preference_two ]
+            end
+
+            it "sets the foreign key on the relation" do
+              person.preference_ids.should == [ preference.id, preference_two.id ]
+            end
+
+            it "sets the foreign key on the inverse relation" do
+              preference_two.person_ids.should == [ person.id ]
+            end
+
+            it "sets the base on the inverse relation" do
+              preference_two.people.should == [ person ]
+            end
+
+            it "sets the same instance on the inverse relation" do
+              preference_two.people.first.should eql(person)
+            end
+
+            it "saves the target" do
+              preference.should_not be_new
+            end
+
+            it "adds the document to the target" do
+              person.preferences.count.should == 2
+            end
+          end
         end
       end
     end
@@ -787,10 +826,15 @@ describe Mongoid::Relations::Referenced::ManyToMany do
         context "when conditions are provided" do
 
           let(:person) do
-            Person.create(:ssn => "123-32-2321").tap do |person|
-              person.preferences.create(:name => "Testing")
-              person.preferences.create(:name => "Test")
-            end
+            Person.create(:ssn => "123-32-2321")
+          end
+
+          let!(:preference_one) do
+            person.preferences.create(:name => "Testing")
+          end
+
+          let!(:preference_two) do
+            person.preferences.create(:name => "Test")
           end
 
           let!(:deleted) do
@@ -810,6 +854,10 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
           it "returns the number of documents deleted" do
             deleted.should == 1
+          end
+
+          it "removes the ids from the foreign key" do
+            person.preference_ids.should == [ preference_two.id ]
           end
         end
 
@@ -1225,6 +1273,13 @@ describe Mongoid::Relations::Referenced::ManyToMany do
     end
   end
 
+  describe "#nil?" do
+
+    it "returns false" do
+      Person.new.preferences.should_not be_nil
+    end
+  end
+
   describe "#nullify_all" do
 
     let(:person) do
@@ -1269,6 +1324,27 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
     it "saves the documents" do
       preference_one.reload.people.should_not include(person)
+    end
+  end
+
+  describe "#respond_to?" do
+
+    let(:person) do
+      Person.new
+    end
+
+    let(:preferences) do
+      person.preferences
+    end
+
+    context "when checking against array methods" do
+
+      [].methods.each do |method|
+
+        it "returns true for #{method}" do
+          preferences.should respond_to(method)
+        end
+      end
     end
   end
 
