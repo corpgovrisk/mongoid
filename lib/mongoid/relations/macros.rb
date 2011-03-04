@@ -8,7 +8,7 @@ module Mongoid # :nodoc:
       extend ActiveSupport::Concern
 
       included do
-        cattr_accessor :embedded
+        class_attribute :embedded
         class_attribute :relations
         
         self.embedded = false
