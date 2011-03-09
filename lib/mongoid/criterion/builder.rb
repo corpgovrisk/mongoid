@@ -2,24 +2,24 @@
 module Mongoid #:nodoc:
   module Criterion #:nodoc:
 
-    # This module defines criteria behavior for creating documents in the
+    # This module defines criteria behavior for building documents in the
     # database for specified conditions.
-    module Creational
+    module Builder
 
-      # Create a document in the database given the selector and return it.
+      # Build a document given the selector and return it.
       # Complex criteria, such as $in and $or operations will get ignored.
       #
-      # @example Create the document.
-      #   Person.where(:title => "Sir").create
+      # @example build the document.
+      #   Person.where(:title => "Sir").build
       #
-      # @example Create with selectors getting ignored.
+      # @example Build with selectors getting ignored.
       #   Person.where(:age.gt => 5).create
       #
-      # @return [ Document ] A newly created document.
+      # @return [ Document ] A non-persisted document.
       #
-      # @since 2.0.0.rc.1
-      def create(attrs={})
-        klass.create(
+      # @since 2.0.0.rc.8
+      def build(attrs={})
+        klass.new(
           selector.inject(attrs) do |hash, (key, value)|
             hash.tap do |attrs|
               unless key.to_s =~ /\$/ || value.is_a?(Hash)

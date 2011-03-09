@@ -25,9 +25,11 @@ module Mongoid # :nodoc:
           args.flatten.each do |doc|
             return doc unless doc
             append(doc, options)
-            doc.save if base.persisted? && !options[:binding]
+            if base.persisted? && !options[:binding]
+              doc.save
+              base.add_to_set(metadata.foreign_key, doc.id)
+            end
           end
-          base.save if base.persisted? && !options[:binding]
         end
         alias :concat :<<
         alias :push :<<
@@ -44,7 +46,10 @@ module Mongoid # :nodoc:
         # @return [ Document ] The newly created document.
         def create(attributes = nil, type = nil)
           build(attributes, type).tap do |doc|
-            doc.save and base.save if base.persisted?
+            if base.persisted?
+              doc.save
+              base.add_to_set(metadata.foreign_key, doc.id)
+            end
           end
         end
 
@@ -63,7 +68,10 @@ module Mongoid # :nodoc:
         # @return [ Document ] The newly created document.
         def create!(attributes = nil, type = nil)
           build(attributes, type).tap do |doc|
-            doc.save! and base.save! if base.persisted?
+            if base.persisted?
+              doc.save!
+              base.add_to_set(metadata.foreign_key, doc.id)
+            end
           end
         end
 
@@ -240,10 +248,7 @@ module Mongoid # :nodoc:
           end
           ids = criteria.merge(cond).only(:_id).map(&:_id)
           criteria.merge(cond).send(method).tap do
-            base.send(metadata.foreign_key).delete_if do |id|
-              ids.include?(id)
-            end
-            base.save
+            base.pull_all(metadata.foreign_key, ids)
           end
         end
 

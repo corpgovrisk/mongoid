@@ -1,8 +1,8 @@
 require "spec_helper"
 
-describe Mongoid::Criterion::Creational do
+describe Mongoid::Criterion::Builder do
 
-  describe "#create" do
+  describe "#build" do
 
     context "when provided a valid selector" do
 
@@ -11,11 +11,11 @@ describe Mongoid::Criterion::Creational do
       end
 
       before do
-        Person.expects(:create).with(:title => "Sir")
+        Person.expects(:new).with(:title => "Sir")
       end
 
       it "calls create on the class with the attributes" do
-        criteria.create
+        criteria.build
       end
     end
 
@@ -26,26 +26,25 @@ describe Mongoid::Criterion::Creational do
       end
 
       before do
-        Person.expects(:create).with({})
+        Person.expects(:new).with({})
       end
 
       it "ignores the attributes" do
-        criteria.create
+        criteria.build
       end
     end
 
     context "with attributes" do
-
       let(:criteria) do
         Mongoid::Criteria.new(Person, false).where(:title => "Sir")
       end
 
       before do
-        Person.expects(:create).with(:title => "Sir", :name => "Lancelot")
+        Person.expects(:new).with(:title => "Sir", :name => "Lancelot")
       end
 
       it "calls create on the class with the attributes" do
-        criteria.create(:name => "Lancelot")
+        criteria.build(:name => "Lancelot")
       end
     end
 

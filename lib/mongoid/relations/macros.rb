@@ -79,7 +79,7 @@ module Mongoid # :nodoc:
         def embeds_many(name, options = {}, &block)
           characterize(name, Embedded::Many, options, &block).tap do |meta|
             relate(name, meta)
-            validate_relation(meta)
+            validates_relation(meta)
           end
         end
 
@@ -106,7 +106,7 @@ module Mongoid # :nodoc:
           characterize(name, Embedded::One, options, &block).tap do |meta|
             relate(name, meta)
             builder(name).creator(name)
-            validate_relation(meta)
+            validates_relation(meta)
           end
         end
 
@@ -132,6 +132,7 @@ module Mongoid # :nodoc:
           characterize(name, Referenced::In, options, &block).tap do |meta|
             relate(name, meta)
             reference(meta)
+            validates_relation(meta)
           end
         end
         alias :belongs_to_related :referenced_in
@@ -161,7 +162,7 @@ module Mongoid # :nodoc:
             relate(name, meta)
             reference(meta)
             autosave(meta)
-            validate_relation(meta)
+            validates_relation(meta)
           end
         end
         alias :has_many_related :references_many
@@ -191,6 +192,7 @@ module Mongoid # :nodoc:
           characterize(name, Referenced::ManyToMany, options, &block).tap do |meta|
             relate(name, meta)
             reference(meta)
+            validates_relation(meta)
           end
         end
         alias :has_and_belongs_to_many :references_and_referenced_in_many
@@ -218,7 +220,7 @@ module Mongoid # :nodoc:
             relate(name, meta)
             reference(meta)
             builder(name).creator(name).autosave(meta)
-            validate_relation(meta)
+            validates_relation(meta)
           end
         end
         alias :has_one_related :references_one
