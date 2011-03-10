@@ -40,7 +40,8 @@ module Mongoid #:nodoc:
       :ids,
       :klass,
       :options,
-      :selector
+      :selector,
+      :field_list
 
     delegate \
       :aggregate,
@@ -124,6 +125,20 @@ module Mongoid #:nodoc:
     # <tt>criteria.exists?</tt>
     def exists?
       context.count > 0
+    end
+
+    # When freezing a criteria we need to initialize the context first
+    # otherwise the setting of the context on attempted iteration will raise a
+    # runtime error.
+    #
+    # @example Freeze the criteria.
+    #   criteria.freeze
+    #
+    # @return [ Criteria ] The frozen criteria.
+    #
+    # @since 2.0.0
+    def freeze
+      context and super
     end
 
     # Merges the supplied argument hash into a single criteria
