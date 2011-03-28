@@ -39,8 +39,7 @@ module Mongoid #:nodoc:
     def read_attribute(name)
       access = name.to_s
       value = @attributes[access]
-      typed_value = fields.has_key?(access) ? fields[access].get(value) : value
-      accessed(access, typed_value)
+      accessed(access, value)
     end
     alias :[] :read_attribute
 
@@ -55,7 +54,7 @@ module Mongoid #:nodoc:
     # @since 1.0.0
     def remove_attribute(name)
       access = name.to_s
-      modify(access, @attributes.delete(name.to_s), nil)
+      modify(access, @attributes.delete(access), nil)
     end
 
     # Override respond_to? so it responds properly for dynamic attributes.
