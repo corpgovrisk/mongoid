@@ -222,21 +222,42 @@ describe Mongoid::Config do
     end
   end
 
+  describe ".default_logger" do
+
+    it "returns a Logger instance by default" do
+      described_class.default_logger.should be_a(Logger)
+    end
+  end
+
   describe ".logger" do
 
-    it "returns the config logger" do
-      described_class.logger.should be_a(::Logger)
+    it "returns the configured logger (NilClass)" do
+      described_class.logger.should be_a(NilClass)
     end
   end
 
   describe ".logger=" do
 
-    before do
-      described_class.logger = Mongoid::Logger.new
+    context "when the logger is set to Mongoid::Logger" do
+
+      before do
+        described_class.logger = Mongoid::Logger.new
+      end
+
+      it "returns a Mongoid::Logger instance" do
+        described_class.logger.should be_a(Mongoid::Logger)
+      end
     end
 
-    it "sets the logger on the config" do
-      described_class.logger.should be_a(Mongoid::Logger)
+    context "when the logger is set to nil" do
+
+      before do
+        described_class.logger = nil
+      end
+
+      it "returns nil" do
+        described_class.logger.should be_a(NilClass)
+      end
     end
   end
 

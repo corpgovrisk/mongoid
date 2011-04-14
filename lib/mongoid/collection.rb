@@ -83,6 +83,27 @@ module Mongoid #:nodoc
       @klass, @name = klass, name
     end
 
+    # Inserts one or more documents in the collection.
+    #
+    # @example Insert documents.
+    #   collection.insert(
+    #     { "field" => "value" },
+    #     :safe => true
+    #   )
+    #
+    # @param [ Hash, Array<Hash> ] documents A single document or multiples.
+    # @param [ Hash ] options The options.
+    #
+    # @since 2.0.2, batch-relational-insert
+    def insert(documents, options = {})
+      inserter = Thread.current[:mongoid_batch_insert]
+      if inserter
+        inserter.consume(documents, options)
+      else
+        master.insert(documents, options)
+      end
+    end
+
     # Perform a map/reduce on the documents.
     #
     # @example Perform the map/reduce.

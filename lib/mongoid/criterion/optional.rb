@@ -86,7 +86,6 @@ module Mongoid #:nodoc:
       def extras(extras)
         clone.tap do |crit|
           crit.options.merge!(extras)
-          crit.filter_options
         end
       end
 

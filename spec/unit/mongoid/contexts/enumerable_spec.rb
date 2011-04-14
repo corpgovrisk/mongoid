@@ -22,8 +22,12 @@ describe Mongoid::Contexts::Enumerable do
     Address.new(:number => 20, :street => "Broadway")
   end
 
+  let(:berlin) do
+    Address.new(:street => "Hobrechtstr")
+  end
+
   let(:docs) do
-    [ london, shanghai, melbourne, new_york ]
+    [ london, shanghai, melbourne, new_york, berlin ]
   end
 
   let(:criteria) do
@@ -47,7 +51,7 @@ describe Mongoid::Contexts::Enumerable do
     end
 
     it "groups by the fields provided in the options" do
-      counts.size.should == 3
+      counts.size.should == 4
     end
 
     it "stores the counts in proper groups" do
@@ -60,14 +64,14 @@ describe Mongoid::Contexts::Enumerable do
   describe "#avg" do
 
     it "returns the avg value for the supplied field" do
-      context.avg(:number).should == 12.75
+      context.avg(:number).should == 10.2
     end
   end
 
   describe "#count" do
 
     it "returns the size of the enumerable" do
-      context.count.should == 4
+      context.count.should == 5
     end
   end
 
@@ -88,7 +92,7 @@ describe Mongoid::Contexts::Enumerable do
 
       it "returns an array of distinct values for the field" do
         context.distinct(:street).should ==
-          [ "Bond Street", "Nan Jing Dong Lu", "Bourke Street", "Broadway" ]
+          [ "Bond Street", "Nan Jing Dong Lu", "Bourke Street", "Broadway", "Hobrechtstr" ]
       end
     end
   end
@@ -149,7 +153,7 @@ describe Mongoid::Contexts::Enumerable do
       end
 
       it "properly skips the specified records" do
-        context.execute.size.should == 2
+        context.execute.size.should == 3
       end
     end
   end
@@ -179,7 +183,7 @@ describe Mongoid::Contexts::Enumerable do
     end
 
     it "groups by the fields provided in the options" do
-      group.size.should == 3
+      group.size.should == 4
     end
 
     it "stores the documents in proper groups" do
@@ -268,7 +272,7 @@ describe Mongoid::Contexts::Enumerable do
   describe "#min" do
 
     it "returns the min value for the supplied field" do
-      context.min(:number).should == 1
+      context.min(:number).should == 0
     end
   end
 
@@ -286,71 +290,6 @@ describe Mongoid::Contexts::Enumerable do
 
       it "returns the first matching in the enumerable" do
         context.one.should == melbourne
-      end
-    end
-  end
-
-  describe "#page" do
-
-    let(:criteria) do
-      Mongoid::Criteria.new(Person).tap do |criteria|
-        criteria.documents = []
-      end
-    end
-
-    context "when the page option exists" do
-
-      let(:crit) do
-        criteria.extras(:page => 5)
-      end
-
-      let(:context) do
-        Mongoid::Contexts::Enumerable.new(crit)
-      end
-
-      it "returns the page option" do
-        context.page.should == 5
-      end
-    end
-
-    context "when the page option does not exist" do
-
-      it "returns 1" do
-        context.page.should == 1
-      end
-    end
-  end
-
-  describe "#paginate" do
-
-    let(:criteria) { Person.criteria.skip(2).limit(2) }
-    let(:results) { context.paginate }
-
-    it "executes and paginates the results" do
-      results.current_page.should == 2
-      results.per_page.should == 2
-    end
-  end
-
-  describe "#per_page" do
-
-    context "when a limit option exists" do
-
-      it "returns 20" do
-        context.per_page.should == 20
-      end
-    end
-
-    context "when a limit option does not exist" do
-
-      let(:criteria) do
-        Person.criteria.limit(50).tap do |criteria|
-          criteria.documents = []
-        end
-      end
-
-      it "returns the limit" do
-        context.per_page.should == 50
       end
     end
   end

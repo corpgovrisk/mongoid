@@ -2,6 +2,40 @@ require "spec_helper"
 
 describe Mongoid::Field do
 
+  describe "#cast_on_read?" do
+
+    [ Date, DateTime, Time, BigDecimal, Image ].each do |klass|
+
+      context "when the type is a #{klass}" do
+
+        let(:field) do
+          Mongoid::Field.new(:field_name, :type => klass)
+        end
+
+        it "returns true" do
+          field.should be_cast_on_read
+        end
+      end
+    end
+
+    [
+      Array, Binary, Boolean, Float, Hash,
+      Integer, BSON::ObjectId, Set, String, Symbol
+    ].each do |klass|
+
+      context "when the type is a #{klass}" do
+
+        let(:field) do
+          Mongoid::Field.new(:field_name, :type => klass)
+        end
+
+        it "returns false" do
+          field.should_not be_cast_on_read
+        end
+      end
+    end
+  end
+
   describe "#default" do
 
     let(:field) do

@@ -4,8 +4,24 @@ module Mongoid #:nodoc:
   # Defines the behaviour for defined fields in the document.
   class Field
 
+    NO_CAST_ON_READ = [
+      Array, Binary, Boolean, Float, Hash,
+      Integer, BSON::ObjectId, Set, String, Symbol
+    ]
+
     attr_accessor :type
     attr_reader :copyable, :klass, :label, :name, :options
+
+    # When reading the field do we need to cast the value? This holds true when
+    # times are stored or for big decimals which are stored as strings.
+    #
+    # @example Typecast on a read?
+    #   field.cast_on_read?
+    #
+    # @return [ true, false ] If the field should be cast.
+    def cast_on_read?
+      !NO_CAST_ON_READ.include?(type)
+    end
 
     # Get the default value for the field.
     #
