@@ -179,6 +179,10 @@ describe Mongoid::Config do
       it "should create a regular Mongo::ReplSetConnection" do
         described_class.master.connection.should be_a Mongo::ReplSetConnection
       end
+
+      it "should create regular Mongo::ReplSetConnection(s) for multiple databases" do
+        described_class.databases["shard_replset"].connection.should be_a Mongo::ReplSetConnection
+      end
     end
   end
 
@@ -314,6 +318,29 @@ describe Mongoid::Config do
 
     it "allows the setting of a default value" do
       Mongoid::Config.test_setting.should == true
+    end
+  end
+
+  describe ".purge!" do
+
+    before do
+      Person.create(:ssn => "123-44-1200")
+      Post.create(:title => "testing")
+    end
+
+    context "when no collection name is provided" do
+
+      let!(:collections) do
+        Mongoid.purge!
+      end
+
+      it "purges the person collection" do
+        Person.count.should == 0
+      end
+
+      it "purges the post collection" do
+        Post.count.should == 0
+      end
     end
   end
 

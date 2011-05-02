@@ -202,6 +202,26 @@ describe Mongoid::Relations::Referenced::Many do
             movie.ratings.count.should == 1
           end
         end
+
+        context "when parent has String identity" do
+
+          before do
+            Movie.identity :type => String
+            movie.ratings.create
+          end
+
+          after do
+            Movie.identity :type => BSON::ObjectId
+          end
+
+          let(:movie) do
+            Movie.create
+          end
+
+          it "should have rating references" do
+            movie.ratings.count.should == 1
+          end
+        end
       end
     end
   end
@@ -499,6 +519,33 @@ describe Mongoid::Relations::Referenced::Many do
           rating.should be_destroyed
         end
       end
+    end
+  end
+
+  describe "#avg" do
+
+    let(:person) do
+      Person.create(:ssn => "123-45-6789")
+    end
+
+    let(:post_one) do
+      Post.create(:rating => 5)
+    end
+
+    let(:post_two) do
+      Post.create(:rating => 10)
+    end
+
+    before do
+      person.posts.push(post_one, post_two)
+    end
+
+    let(:avg) do
+      person.posts.avg(:rating)
+    end
+
+    it "returns the average value of the supplied field" do
+      avg.should == 7.5
     end
   end
 
@@ -1904,6 +1951,33 @@ describe Mongoid::Relations::Referenced::Many do
     end
   end
 
+  describe "#max" do
+
+    let(:person) do
+      Person.create(:ssn => "123-45-6789")
+    end
+
+    let(:post_one) do
+      Post.create(:rating => 5)
+    end
+
+    let(:post_two) do
+      Post.create(:rating => 10)
+    end
+
+    before do
+      person.posts.push(post_one, post_two)
+    end
+
+    let(:max) do
+      person.posts.max(:rating)
+    end
+
+    it "returns the max value of the supplied field" do
+      max.should == 10
+    end
+  end
+
   describe "#method_missing" do
 
     let!(:person) do
@@ -1959,6 +2033,33 @@ describe Mongoid::Relations::Referenced::Many do
           person.posts.distinct(:title).should =~ [ "First",  "Second"]
         end
       end
+    end
+  end
+
+  describe "#min" do
+
+    let(:person) do
+      Person.create(:ssn => "123-45-6789")
+    end
+
+    let(:post_one) do
+      Post.create(:rating => 5)
+    end
+
+    let(:post_two) do
+      Post.create(:rating => 10)
+    end
+
+    before do
+      person.posts.push(post_one, post_two)
+    end
+
+    let(:min) do
+      person.posts.min(:rating)
+    end
+
+    it "returns the min value of the supplied field" do
+      min.should == 5
     end
   end
 
@@ -2078,6 +2179,33 @@ describe Mongoid::Relations::Referenced::Many do
           rating.ratable.should be_nil
         end
       end
+    end
+  end
+
+  describe "#sum" do
+
+    let(:person) do
+      Person.create(:ssn => "123-45-6789")
+    end
+
+    let(:post_one) do
+      Post.create(:rating => 5)
+    end
+
+    let(:post_two) do
+      Post.create(:rating => 10)
+    end
+
+    before do
+      person.posts.push(post_one, post_two)
+    end
+
+    let(:sum) do
+      person.posts.sum(:rating)
+    end
+
+    it "returns the sum values of the supplied field" do
+      sum.should == 15
     end
   end
 

@@ -45,8 +45,9 @@ module Rails #:nodoc:
       #
       # @example mongoid.yml
       #
-      #   defaults: &defaults
+      #   development:
       #     host: localhost
+      #     database: mongoid
       #     slaves:
       #       # - host: localhost
       #         # port: 27018
@@ -56,9 +57,6 @@ module Rails #:nodoc:
       #     parameterize_keys: false
       #     persist_in_safe_mode: false
       #
-      #   development:
-      #     <<: *defaults
-      #     database: mongoid
       initializer "setup database" do
         config_file = Rails.root.join("config", "mongoid.yml")
         if config_file.file?
@@ -131,7 +129,7 @@ module Rails #:nodoc:
         config.after_initialize do
           ::Mongoid.instantiate_observers
 
-          ActionDispatch::Callbacks.to_prepare(:mongoid_instantiate_observers) do
+          ActionDispatch::Callbacks.to_prepare do
             ::Mongoid.instantiate_observers
           end
         end
