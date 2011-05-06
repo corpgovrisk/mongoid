@@ -21,7 +21,7 @@ module Mongoid #:nodoc:
     #
     # @return [ Integer ] -1, 0, 1.
     def <=>(other)
-      raw_attributes["_id"].to_s <=> other.raw_attributes["_id"].to_s
+      attributes["_id"].to_s <=> other.attributes["_id"].to_s
     end
 
     # Performs equality checking on the document ids. For more robust
@@ -35,7 +35,7 @@ module Mongoid #:nodoc:
     # @return [ true, false ] True if the ids are equal, false if not.
     def ==(other)
       self.class == other.class &&
-        raw_attributes["_id"] == other.raw_attributes["_id"]
+        attributes["_id"] == other.attributes["_id"]
     end
 
     # Performs class equality checking.
@@ -71,7 +71,7 @@ module Mongoid #:nodoc:
     #
     # @since 2.0.0
     def freeze
-      raw_attributes.freeze
+      attributes.freeze
       self
     end
 
@@ -99,18 +99,6 @@ module Mongoid #:nodoc:
     # @return [ Integer ] The hash of the document's id.
     def hash
       raw_attributes["_id"].hash
-    end
-
-    # Return the attributes hash with indifferent access. Used mostly for
-    # convenience - use +Document#raw_attributes+ where you dont care if the
-    # keys are all strings.
-    #
-    # @example Get the attributes.
-    #   person.attributes
-    #
-    # @return [ HashWithIndifferentAccess ] The attributes.
-    def attributes
-      raw_attributes.with_indifferent_access
     end
 
     # Generate an id for this +Document+.
@@ -144,16 +132,6 @@ module Mongoid #:nodoc:
         identify
       end
       run_callbacks(:initialize) { self }
-    end
-
-    # Return the attributes hash.
-    #
-    # @example Get the untouched attributes.
-    #   person.raw_attributes
-    #
-    # @return [ Hash ] This document's attributes.
-    def raw_attributes
-      @attributes
     end
 
     # Reloads the +Document+ attributes from the database. If the document has
@@ -220,8 +198,8 @@ module Mongoid #:nodoc:
     #
     # @return [ Hash ] A hash of all attributes in the hierarchy.
     def as_document
-      attributes = raw_attributes
-      attributes.tap do |attrs|
+      attribs = attributes
+      attribs.tap do |attrs|
         relations.select { |name, meta| meta.embedded? }.each do |name, meta|
           relation = send(name, false, :continue => false)
           attrs[name] = relation.as_document unless relation.blank?
