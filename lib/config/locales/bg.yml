@@ -11,6 +11,9 @@ bg:
         invalid_type:
           Полето е дефинирано като a(n) %{klass}, но се присвоява %{other}
           със стойност %{value}.
+        invalid_options:
+          "Invalid option :%{invalid} provided to relation :%{name}. Valid options
+          are: %{valid}."
         unsupported_version:
           MongoDB %{version} не се подържа, моля ползвайте версия след %{mongo_version}.
         validations:
@@ -39,3 +42,6 @@ bg:
         unsaved_document:
           You cannot call create or create! through a relational association
           relation (%{document}) who's parent (%{base}) is not already saved.
+        mixed_relations:
+          Referencing a(n) %{embedded} document from the %{root} document via a
+          relational association is not allowed since the %{embedded} is embedded.

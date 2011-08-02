@@ -41,6 +41,7 @@ describe Mongoid::Config do
 
       before do
         described_class.add_language("de")
+        I18n.reload!
         I18n.locale = :de
       end
 
@@ -341,6 +342,13 @@ describe Mongoid::Config do
       end
     end
 
+    describe ".identity_map_enabled" do
+
+      it "defaults to false" do
+        described_class.identity_map_enabled.should be_false
+      end
+    end
+
     describe ".include_root_in_json" do
 
       it "defaults to false" do
@@ -364,8 +372,8 @@ describe Mongoid::Config do
 
     describe ".preload_models" do
 
-      it "defaults to true" do
-        described_class.preload_models.should be_true
+      it "defaults to false" do
+        described_class.preload_models.should be_false
       end
     end
 
@@ -400,8 +408,8 @@ describe Mongoid::Config do
 
   describe ".reset" do
 
-    it "clears out the settings" do
-      described_class.reset.should == {}
+    it "reverts to the defaults" do
+      described_class.reset.should == described_class.defaults
     end
   end
 end

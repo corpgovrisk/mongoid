@@ -42,10 +42,13 @@ module Mongoid #:nodoc:
       :field_list
 
     delegate \
+      :add_to_set,
       :aggregate,
       :avg,
       :blank?,
       :count,
+      :size,
+      :length,
       :delete,
       :delete_all,
       :destroy,
@@ -59,6 +62,7 @@ module Mongoid #:nodoc:
       :max,
       :min,
       :one,
+      :pull,
       :shift,
       :sum,
       :update,
@@ -354,7 +358,7 @@ module Mongoid #:nodoc:
     def update_selector(attributes, operator, combine = :+)
       clone.tap do |crit|
         converted = BSON::ObjectId.convert(klass, attributes || {})
-        converted.each do |key, value|
+        converted.each_pair do |key, value|
           unless crit.selector[key]
             crit.selector[key] = { operator => value }
           else

@@ -11,6 +11,9 @@ hu:
         invalid_type:
           A mező %{klass} -ként volt meghatározva, de a kapott érték %{value}
           egy %{other}.
+        invalid_options:
+          "Invalid option :%{invalid} provided to relation :%{name}. Valid options
+          are: %{valid}."
         unsupported_version:
           MongoDB %{version} nem támogatott, kérjük frissítsen
           a %{mongo_version} verzióra.
@@ -42,3 +45,6 @@ hu:
         unsaved_document:
           You cannot call create or create! through a relational association
           relation (%{document}) who's parent (%{base}) is not already saved.
+        mixed_relations:
+          Referencing a(n) %{embedded} document from the %{root} document via a
+          relational association is not allowed since the %{embedded} is embedded.

@@ -49,34 +49,6 @@ describe Mongoid::Relations::Embedded::In do
     end
   end
 
-  describe "#bind" do
-
-    let(:relation) do
-      described_class.new(base, target, metadata)
-    end
-
-    before do
-      binding_klass.expects(:new).returns(binding)
-      binding.expects(:bind).returns(true)
-    end
-
-    context "when building" do
-
-      it "does not save the document" do
-        target.expects(:save).never
-        relation.bind(:binding => true)
-      end
-    end
-
-    context "when not building" do
-
-      it "does not save the target" do
-        target.expects(:save).never
-        relation.bind
-      end
-    end
-  end
-
   describe ".builder" do
 
     it "returns the embedded one builder" do
@@ -121,91 +93,11 @@ describe Mongoid::Relations::Embedded::In do
     end
   end
 
-  describe "#substitute" do
+  describe ".valid_options" do
 
-    let(:relation) do
-      described_class.new(base, target, metadata)
-    end
-
-    context "when passing a document" do
-
-      let(:document) do
-        Name.new(:first_name => "Durran")
-      end
-
-      before do
-        binding_klass.expects(:new).returns(binding)
-        binding.expects(:bind).returns(true)
-        @substitute = relation.substitute(document)
-      end
-
-      it "sets a new target" do
-        relation.target.should == document
-      end
-
-      it "returns the relation" do
-        @substitute.should == relation
-      end
-    end
-
-    context "when passing nil" do
-
-      before do
-        binding_klass.expects(:new).returns(binding)
-        binding.expects(:unbind)
-        @substitute = relation.substitute(nil)
-      end
-
-      it "sets a new target" do
-        relation.target.should == nil
-      end
-
-      it "returns the relation" do
-        @substitute.should be_nil
-      end
-    end
-  end
-
-  describe "#unbind" do
-
-    let(:relation) do
-      described_class.new(base, target, metadata)
-    end
-
-    context "when the target is persisted" do
-
-      context "when the base has not been destroyed" do
-
-        before do
-          target.expects(:persisted?).returns(true)
-        end
-
-        it "deletes the base" do
-          base.expects(:delete).returns(true)
-          relation.unbind(target)
-        end
-      end
-
-      context "when the base is already destroyed" do
-
-        before do
-          target.expects(:persisted?).returns(true)
-          base.expects(:destroyed?).returns(true)
-        end
-
-        it "does not delete the target" do
-          base.expects(:delete).never
-          relation.unbind(target)
-        end
-      end
-    end
-
-    context "when the target is not persisted" do
-
-      it "does not delete the base" do
-        base.expects(:delete).never
-        relation.unbind(target)
-      end
+    it "returns the valid options" do
+      described_class.valid_options.should ==
+        [ :cyclic, :polymorphic ]
     end
   end
 end

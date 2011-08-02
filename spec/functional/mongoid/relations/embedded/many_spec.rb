@@ -3,7 +3,36 @@ require "spec_helper"
 describe Mongoid::Relations::Embedded::Many do
 
   before do
-    [ Person, Account, Quiz, Role ].map(&:delete_all)
+    [ Person, Account, Acolyte, Quiz, Role ].map(&:delete_all)
+  end
+
+  context "when embedding children named versions" do
+
+    let(:acolyte) do
+      Acolyte.create(:name => "test")
+    end
+
+    context "when creating a child" do
+
+      let(:version) do
+        acolyte.versions.create(:number => 1)
+      end
+
+      it "allows the operation" do
+        version.number.should eq(1)
+      end
+
+      context "when reloading the parent" do
+
+        let(:from_db) do
+          acolyte.reload
+        end
+
+        it "saves the child versions" do
+          from_db.versions.should eq([ version ])
+        end
+      end
+    end
   end
 
   context "when validating the parent before accessing the child" do
@@ -1107,6 +1136,68 @@ describe Mongoid::Relations::Embedded::Many do
           end
         end
       end
+
+      context "when the documents empty" do
+
+        context "when scoped" do
+          let!(:deleted) do
+            person.addresses.without_postcode.send(method)
+          end
+
+          it "deletes all the documents" do
+            person.addresses.count.should == 0
+          end
+
+          it "deletes all the documents from the db" do
+            person.reload.addresses.count.should == 0
+          end
+
+          it "returns the number deleted" do
+            deleted.should == 0
+          end
+        end
+
+        context "when conditions are provided" do
+
+          let!(:deleted) do
+            person.addresses.send(
+              method,
+              :conditions => { :street => "Bond" }
+            )
+          end
+
+          it "deletes all the documents" do
+            person.addresses.count.should == 0
+          end
+
+          it "deletes all the documents from the db" do
+            person.reload.addresses.count.should == 0
+          end
+
+          it "returns the number deleted" do
+            deleted.should == 0
+          end
+        end
+
+        context "when conditions are not provided" do
+
+          let!(:deleted) do
+            person.addresses.send(method)
+          end
+
+          it "deletes all the documents" do
+            person.addresses.count.should == 0
+          end
+
+          it "deletes all the documents from the db" do
+            person.reload.addresses.count.should == 0
+          end
+
+          it "returns the number deleted" do
+            deleted.should == 0
+          end
+        end
+      end
     end
   end
 
@@ -1174,10 +1265,6 @@ describe Mongoid::Relations::Embedded::Many do
             Mongoid.raise_not_found_error = true
           end
 
-          after do
-            Mongoid.raise_not_found_error = false
-          end
-
           it "raises an error" do
             expect {
               person.addresses.find(BSON::ObjectId.new)
@@ -1193,6 +1280,10 @@ describe Mongoid::Relations::Embedded::Many do
 
           before do
             Mongoid.raise_not_found_error = false
+          end
+
+          after do
+            Mongoid.raise_not_found_error = true
           end
 
           it "returns nil" do
@@ -1223,10 +1314,6 @@ describe Mongoid::Relations::Embedded::Many do
             Mongoid.raise_not_found_error = true
           end
 
-          after do
-            Mongoid.raise_not_found_error = false
-          end
-
           it "raises an error" do
             expect {
               person.addresses.find([ BSON::ObjectId.new ])
@@ -1242,6 +1329,10 @@ describe Mongoid::Relations::Embedded::Many do
 
           before do
             Mongoid.raise_not_found_error = false
+          end
+
+          after do
+            Mongoid.raise_not_found_error = true
           end
 
           it "returns an empty array" do
@@ -1588,6 +1679,66 @@ describe Mongoid::Relations::Embedded::Many do
 
   context "when deeply embedding documents" do
 
+    context "when building the tree through hashes" do
+
+      let(:circus) do
+        Circus.new(hash)
+      end
+
+      let(:animal) do
+        circus.animals.first
+      end
+
+      let(:animal_name) do
+        "Lion"
+      end
+
+      let(:tag_list) do
+        "tigers, bears, oh my"
+      end
+
+      context "when the hash uses stringified keys" do
+
+        let(:hash) do
+          { 'animals' => [{ 'name' => animal_name, 'tag_list' => tag_list }] }
+        end
+
+        it "sets up the hierarchy" do
+          animal.circus.should == circus
+        end
+
+        it "assigns the attributes" do
+          animal.name.should == animal_name
+        end
+
+        it "uses custom writer methods" do
+          animal.tag_list.should == tag_list
+        end
+
+      end
+
+      context "when the hash uses symbolized keys" do
+
+        let(:hash) do
+          { :animals => [{ :name => animal_name, :tag_list => tag_list }] }
+        end
+
+        it "sets up the hierarchy" do
+          animal.circus.should == circus
+        end
+
+        it "assigns the attributes" do
+          animal.name.should == animal_name
+        end
+
+        it "uses custom writer methods" do
+          animal.tag_list.should == tag_list
+        end
+
+      end
+
+    end
+
     context "when building the tree through pushes" do
 
       let(:quiz) do
@@ -1678,6 +1829,143 @@ describe Mongoid::Relations::Embedded::Many do
 
         it "reloads the entire tree" do
           reloaded_question.should == question
+        end
+      end
+    end
+  end
+
+  context "when attempting nil pushes and substitutes" do
+
+    let(:home_phone) do
+      Phone.new(:number => "555-555-5555")
+    end
+
+    let(:office_phone) do
+      Phone.new(:number => "666-666-6666")
+    end
+
+    describe "replacing the entire embedded list" do
+
+      context "when an embeds many relationship contains a nil as the first item" do
+
+        let(:person) do
+          Person.create!
+        end
+
+        let(:phone_list) do
+          [nil, home_phone, office_phone]
+        end
+
+        before do
+          person.phone_numbers = phone_list
+          person.save!
+        end
+
+        it "should ignore the nil and persist the remaining items" do
+          reloaded = Person.find(person.id)
+          reloaded.phone_numbers.should eq([ home_phone, office_phone ])
+        end
+      end
+
+      context "when an embeds many relationship contains a nil in the middle of the list" do
+
+        let(:person) do
+          Person.create!
+        end
+
+        let(:phone_list) do
+          [home_phone, nil, office_phone]
+        end
+
+        before do
+          person.phone_numbers = phone_list
+          person.save!
+        end
+
+        it "should ignore the nil and persist the remaining items" do
+          reloaded = Person.find(person.id)
+          reloaded.phone_numbers.should eq([ home_phone, office_phone ])
+        end
+      end
+
+      context "when an embeds many relationship contains a nil at the end of the list" do
+
+        let(:person) do
+          Person.create!
+        end
+
+        let(:phone_list) do
+          [home_phone, office_phone, nil]
+        end
+
+        before do
+          person.phone_numbers = phone_list
+          person.save!
+        end
+
+        it "should ignore the nil and persist the remaining items" do
+          reloaded = Person.find(person.id)
+          reloaded.phone_numbers.should eq([ home_phone, office_phone ])
+        end
+      end
+    end
+
+    describe "appending to the embedded list" do
+
+      context "when appending a nil to the first position in an embedded list" do
+
+        let(:person) do
+          Person.create! :phone_numbers => []
+        end
+
+        before do
+          person.phone_numbers << nil 
+          person.phone_numbers << home_phone
+          person.phone_numbers << office_phone 
+          person.save!
+        end
+
+        it "should ignore the nil and persist the remaining items" do
+          reloaded = Person.find(person.id)
+          reloaded.phone_numbers.should == person.phone_numbers
+        end
+      end
+
+      context "when appending a nil into the middle of an embedded list" do
+
+        let(:person) do
+          Person.create! :phone_numbers => []
+        end
+
+        before do
+          person.phone_numbers << home_phone
+          person.phone_numbers << nil 
+          person.phone_numbers << office_phone 
+          person.save!
+        end
+
+        it "should ignore the nil and persist the remaining items" do
+          reloaded = Person.find(person.id)
+          reloaded.phone_numbers.should == person.phone_numbers
+        end
+      end
+
+      context "when appending a nil to the end of an embedded list" do
+
+        let(:person) do
+          Person.create! :phone_numbers => []
+        end
+
+        before do
+          person.phone_numbers << home_phone
+          person.phone_numbers << office_phone 
+          person.phone_numbers << nil 
+          person.save!
+        end
+
+        it "should ignore the nil and persist the remaining items" do
+          reloaded = Person.find(person.id)
+          reloaded.phone_numbers.should == person.phone_numbers
         end
       end
     end

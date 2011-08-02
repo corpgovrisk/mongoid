@@ -201,7 +201,7 @@ describe Mongoid::Fields do
       end
 
       before do
-        Mongoid::Field.option :option, &handler
+        Mongoid::Fields.option :option, &handler
       end
 
       context "when option is provided" do
@@ -281,6 +281,33 @@ describe Mongoid::Fields do
       it "includes the child fields" do
         circle.fields.keys.should include("radius")
       end
+    end
+  end
+
+  describe ".replace_field" do
+
+    let!(:original) do
+      Person.field(:id_test, :type => BSON::ObjectId, :label => "id")
+    end
+
+    let!(:altered) do
+      Person.replace_field("id_test", String)
+    end
+
+    after do
+      Person.fields.delete("id_test")
+    end
+
+    let(:new_field) do
+      Person.fields["id_test"]
+    end
+
+    it "sets the new type on the field" do
+      new_field.type.should == String
+    end
+
+    it "keeps the options from the old field" do
+      new_field.options[:label].should == "id"
     end
   end
 end

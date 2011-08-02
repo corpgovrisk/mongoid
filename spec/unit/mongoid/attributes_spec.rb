@@ -32,7 +32,7 @@ describe Mongoid::Attributes do
     context "when the document is an existing record" do
 
       let(:person) do
-        Person.create
+        Person.create(:ssn => "123-11-4412")
       end
 
       context "when the attribute does not exist" do
@@ -48,7 +48,6 @@ describe Mongoid::Attributes do
           end
 
           it "returns the default value" do
-            Person.find(person.id)[:age].should == 100
             found[:age].should == 100
           end
         end
@@ -56,7 +55,9 @@ describe Mongoid::Attributes do
         context "when reloaded" do
 
           before do
+            Mongoid.raise_not_found_error = false
             person.reload
+            Mongoid.raise_not_found_error = true
           end
 
           it "returns the default value" do
@@ -630,7 +631,9 @@ describe Mongoid::Attributes do
 
         before do
           person.collection.update({:_id => person.id}, {'$unset' => {:age => 1}})
+          Mongoid.raise_not_found_error = false
           person.reload
+          Mongoid.raise_not_found_error = true
         end
 
         it "returns the default value" do
@@ -675,7 +678,9 @@ describe Mongoid::Attributes do
 
         before do
           person.collection.update({:_id => person.id}, {'$unset' => {:age => 1}})
+          Mongoid.raise_not_found_error = false
           person.reload
+          Mongoid.raise_not_found_error = true
         end
 
         it "returns true" do
@@ -783,10 +788,14 @@ describe Mongoid::Attributes do
 
     context "when the key has been specified as a field" do
 
-      before { person.stubs(:fields).returns({"age" => Integer}) }
+      before do
+        person.stubs(:fields).returns(
+          { "age" => Mongoid::Fields::Serializable::Integer.new(:age) }
+        )
+      end
 
       it "retuns the typed value" do
-        person.fields["age"].expects(:set).with("51")
+        person.fields["age"].expects(:serialize).with("51")
         person.send(:typed_value_for, "age", "51")
       end
 

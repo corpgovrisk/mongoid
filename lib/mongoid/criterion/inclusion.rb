@@ -67,7 +67,7 @@ module Mongoid #:nodoc:
         clone.tap do |crit|
           criterion = @selector["$or"] || []
           converted = BSON::ObjectId.convert(klass, args.flatten)
-          expanded = converted.collect(&:expand_complex_criteria)
+          expanded = converted.collect { |hash| hash.expand_complex_criteria }
           crit.selector["$or"] = criterion.concat(expanded)
         end
       end
@@ -159,7 +159,9 @@ module Mongoid #:nodoc:
           end
 
           selector.each_pair do |key, value|
-            if crit.selector.has_key?(key) && crit.selector[key].respond_to?(:merge!)
+            if crit.selector.has_key?(key) &&
+              crit.selector[key].respond_to?(:merge!) &&
+              value.respond_to?(:merge!)
               crit.selector[key] =
                 crit.selector[key].merge!(value) do |key, old, new|
                   key == '$in' ? old & new : new

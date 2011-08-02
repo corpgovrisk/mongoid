@@ -27,8 +27,8 @@ describe Mongoid::Persistence::Atomic::AddToSet do
         before do
           person.new_record = false
           collection.expects(:update).with(
-            person._selector,
-            { "$addToSet" => { :aliases => "Bond" } },
+            person.atomic_selector,
+            { "$addToSet" => { "aliases" => "Bond" } },
             :safe => false
           )
         end
@@ -43,10 +43,6 @@ describe Mongoid::Persistence::Atomic::AddToSet do
 
         it "removes the field from the dirty attributes" do
           person.changes["aliases"].should be_nil
-        end
-
-        it "resets the document dirty flag" do
-          person.should_not be_changed
         end
 
         it "returns the new array value" do
@@ -67,8 +63,8 @@ describe Mongoid::Persistence::Atomic::AddToSet do
         before do
           person.new_record = false
           collection.expects(:update).with(
-            person._selector,
-            { "$addToSet" => { :aliases => "Bond" } },
+            person.atomic_selector,
+            { "$addToSet" => { "aliases" => "Bond" } },
             :safe => false
           )
         end
@@ -83,10 +79,6 @@ describe Mongoid::Persistence::Atomic::AddToSet do
 
         it "removes the field from the dirty attributes" do
           person.changes["aliases"].should be_nil
-        end
-
-        it "resets the document dirty flag" do
-          person.should_not be_changed
         end
 
         it "returns the array value" do
@@ -108,8 +100,8 @@ describe Mongoid::Persistence::Atomic::AddToSet do
       before do
         person.new_record = false
         collection.expects(:update).with(
-          person._selector,
-          { "$addToSet" => { :aliases => "Bond" } },
+          person.atomic_selector,
+          { "$addToSet" => { "aliases" => "Bond" } },
           :safe => false
         )
       end
@@ -124,10 +116,6 @@ describe Mongoid::Persistence::Atomic::AddToSet do
 
       it "removes the field from the dirty attributes" do
         person.changes["aliases"].should be_nil
-      end
-
-      it "resets the document dirty flag" do
-        person.should_not be_changed
       end
 
       it "returns the new array value" do

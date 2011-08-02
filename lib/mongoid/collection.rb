@@ -15,9 +15,7 @@ module Mongoid #:nodoc
     #
     # @example Delegate the operation.
     #   collection.save({ :name => "Al" })
-    Collections::Operations::PROXIED.each do |name|
-      define_method(name) { |*args| master.send(name, *args) }
-    end
+    delegate *(Collections::Operations::PROXIED.dup << {:to => :master})
 
     # Find documents from the database given a selector and options.
     #
@@ -75,9 +73,9 @@ module Mongoid #:nodoc
     #
     # @since 2.0.2, batch-relational-insert
     def insert(documents, options = {})
-      inserter = Thread.current[:mongoid_batch_insert]
-      if inserter
-        inserter.consume(documents, options)
+      consumer = Threaded.insert
+      if consumer
+        consumer.consume(documents, options)
       else
         master(options).insert(documents, options)
       end
@@ -126,7 +124,7 @@ module Mongoid #:nodoc
     #
     # @since 2.0.0
     def update(selector, document, options = {})
-      updater = Thread.current[:mongoid_atomic_update]
+      updater = Threaded.update
       if updater
         updater.consume(selector, document, options)
       else

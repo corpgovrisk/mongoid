@@ -2,12 +2,31 @@ require "spec_helper"
 
 describe Mongoid::Dirty do
 
+  context "when fields have been defined pre-dirty inclusion" do
+
+    let(:person) do
+      Person.new
+    end
+
+    it "defines a _change method" do
+      person.updated_at_change.should be_nil
+    end
+
+    it "defines a _changed? method" do
+      person.updated_at_changed?.should eq(false)
+    end
+
+    it "defines a _changes method" do
+      person.updated_at_was.should be_nil
+    end
+  end
+
   describe "#attribute_change" do
 
-    context "when the attribute has changed" do
+    context "when the attribute has changed from the persisted value" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       before do
@@ -15,7 +34,7 @@ describe Mongoid::Dirty do
       end
 
       it "returns an array of the old value and new value" do
-        person.attribute_change("title").should ==
+        person.send(:attribute_change, "title").should ==
           [ "Grand Poobah", "Captain Obvious" ]
       end
 
@@ -25,10 +44,25 @@ describe Mongoid::Dirty do
       end
     end
 
+    context "when the attribute has changed from the default value" do
+
+      let(:person) do
+        Person.new(:pets => true)
+      end
+
+      it "returns an array of the default value and new value" do
+        person.send(:attribute_change, "pets").should == [ false, true ]
+      end
+
+      it "allows access via (attribute)_change" do
+        person.pets_change.should == [ false, true ]
+      end
+    end
+
     context "when the attribute changes multiple times" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       before do
@@ -37,7 +71,7 @@ describe Mongoid::Dirty do
       end
 
       it "returns an array of the original value and new value" do
-        person.attribute_change("title").should ==
+        person.send(:attribute_change, "title").should ==
           [ "Grand Poobah", "Dark Helmet" ]
       end
 
@@ -52,7 +86,7 @@ describe Mongoid::Dirty do
       context "when the attribute is an array" do
 
         let(:person) do
-          Person.new(:aliases => [ "Grand Poobah" ])
+          Person.new(:aliases => [ "Grand Poobah" ]).tap(&:move_changes)
         end
 
         before do
@@ -60,7 +94,7 @@ describe Mongoid::Dirty do
         end
 
         it "returns an array of the original value and new value" do
-          person.attribute_change("aliases").should ==
+          person.send(:attribute_change, "aliases").should ==
             [ [ "Grand Poobah" ],  [ "Dark Helmet" ] ]
         end
 
@@ -76,7 +110,7 @@ describe Mongoid::Dirty do
           end
 
           it "returns an array of the original value and new value" do
-            person.attribute_change("aliases").should ==
+            person.send(:attribute_change, "aliases").should ==
               [ [ "Grand Poobah" ],  [ "Dark Helmet", "Colonel Sanders" ] ]
           end
         end
@@ -85,7 +119,7 @@ describe Mongoid::Dirty do
       context "when the attribute is a hash" do
 
         let(:person) do
-          Person.new(:map => { :location => "Home" })
+          Person.new(:map => { :location => "Home" }).tap(&:move_changes)
         end
 
         before do
@@ -93,7 +127,7 @@ describe Mongoid::Dirty do
         end
 
         it "returns an array of the original value and new value" do
-          person.attribute_change("map").should ==
+          person.send(:attribute_change, "map").should ==
             [ { :location => "Home" }, { :location => "Work" } ]
         end
 
@@ -109,28 +143,38 @@ describe Mongoid::Dirty do
           end
 
           it "returns an array of the original value and new value" do
-            person.attribute_change("map").should ==
+            person.send(:attribute_change, "map").should ==
               [ { :location => "Home" }, { :location => "Work", :lat => 20.0 } ]
           end
         end
       end
     end
 
-    context "when the attribute has not changed" do
+    context "when the attribute has not changed from the persisted value" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new(:title => nil)
       end
 
-      it "returns an empty array" do
-        person.attribute_change("title").should be_nil
+      it "returns nil" do
+        person.send(:attribute_change, "title").should be_nil
+      end
+    end
+
+    context "when the attribute has not changed from the default value" do
+      let(:person) do
+        Person.new
+      end
+
+      it "returns nil" do
+        person.send(:attribute_change, "pets").should be_nil
       end
     end
 
     context "when the attribute has been set with the same value" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       before do
@@ -138,14 +182,14 @@ describe Mongoid::Dirty do
       end
 
       it "returns an empty array" do
-        person.attribute_change("title").should be_nil
+        person.send(:attribute_change, "title").should be_nil
       end
     end
 
     context "when the attribute is removed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       before do
@@ -153,7 +197,7 @@ describe Mongoid::Dirty do
       end
 
       it "returns an empty array" do
-        person.attribute_change("title").should ==
+        person.send(:attribute_change, "title").should ==
           [ "Grand Poobah", nil ]
       end
     end
@@ -161,7 +205,7 @@ describe Mongoid::Dirty do
 
   describe "#attribute_changed?" do
 
-    context "when the attribute has changed" do
+    context "when the attribute has changed from the persisted value" do
 
       let(:person) do
         Person.new(:title => "Grand Poobah")
@@ -172,7 +216,7 @@ describe Mongoid::Dirty do
       end
 
       it "returns true" do
-        person.attribute_changed?("title").should == true
+        person.send(:attribute_changed?, "title").should == true
       end
 
       it "allows access via (attribute)_changed?" do
@@ -180,24 +224,54 @@ describe Mongoid::Dirty do
       end
     end
 
-    context "when the attribute has not changed" do
+    context "when the attribute has changed from the default value" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new
+      end
+
+      before do
+        person.pets = true
+      end
+
+      it "returns true" do
+        person.send(:attribute_changed?, "pets").should == true
+      end
+
+      it "allows access via (attribute)_changed?" do
+        person.pets_changed?.should == true
+      end
+    end
+
+    context "when the attribute has not changed the persisted value" do
+
+      let!(:person) do
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       it "returns false" do
-        person.attribute_changed?("title").should == false
+        person.send(:attribute_changed?, "title").should == false
+      end
+    end
+
+    context "when the attribute has not changed from the default value" do
+
+      let!(:person) do
+        Person.new
+      end
+
+      it "returns false" do
+        person.send(:attribute_changed?, "pets").should == false
       end
     end
   end
 
   describe "#attribute_was" do
 
-    context "when the attribute has changed" do
+    context "when the attribute has changed from the persisted value" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       before do
@@ -205,7 +279,7 @@ describe Mongoid::Dirty do
       end
 
       it "returns the old value" do
-        person.attribute_was("title").should == "Grand Poobah"
+        person.send(:attribute_was, "title").should == "Grand Poobah"
       end
 
       it "allows access via (attribute)_was" do
@@ -213,14 +287,44 @@ describe Mongoid::Dirty do
       end
     end
 
-    context "when the attribute has not changed" do
+    context "when the attribute has changed from the default value" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.new
+      end
+
+      before do
+        person.pets = true
+      end
+
+      it "returns the default value" do
+        person.send(:attribute_was, "pets").should == false
+      end
+
+      it "allows access via (attribute)_was" do
+        person.pets_was.should == false
+      end
+    end
+
+    context "when the attribute has not changed from the persisted value" do
+
+      let!(:person) do
+        Person.new(:title => "Grand Poobah").tap(&:move_changes)
       end
 
       it "returns the original value" do
-        person.attribute_was("title").should == "Grand Poobah"
+        person.send(:attribute_was, "title").should == "Grand Poobah"
+      end
+    end
+
+    context "when the attribute has not changed from the default value" do
+
+      let(:person) do
+        Person.new
+      end
+
+      it "returns the default value" do
+        person.send(:attribute_was, "pets").should == false
       end
     end
   end
@@ -230,7 +334,7 @@ describe Mongoid::Dirty do
     context "when the document has changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate(:title => "Grand Poobah")
       end
 
       before do
@@ -245,7 +349,7 @@ describe Mongoid::Dirty do
     context "when the document has not changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate({})
       end
 
       it "returns an empty array" do
@@ -274,7 +378,7 @@ describe Mongoid::Dirty do
     context "when the document has not changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate
       end
 
       it "returns false" do
@@ -288,7 +392,7 @@ describe Mongoid::Dirty do
     context "when the document has changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate(:title => "Grand Poobah")
       end
 
       before do
@@ -297,14 +401,14 @@ describe Mongoid::Dirty do
 
       it "returns a hash of changes" do
         person.changes.should ==
-          { "title" => [ "Grand Poobah", "Captain Obvious" ] }
+          { "title" => [ nil, "Captain Obvious" ] }
       end
     end
 
     context "when the document has not changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate
       end
 
       it "returns an empty hash" do
@@ -320,7 +424,7 @@ describe Mongoid::Dirty do
       context "when the document is a root document" do
 
         let(:person) do
-          Person.new(:title => "Grand Poobah")
+          Person.instantiate(:title => "Grand Poobah")
         end
 
         before do
@@ -336,11 +440,11 @@ describe Mongoid::Dirty do
       context "when the document is embedded" do
 
         let(:person) do
-          Person.new(:title => "Grand Poobah")
+          Person.instantiate(:title => "Grand Poobah")
         end
 
         let(:address) do
-          Address.new(:street => "Oxford St")
+          Address.instantiate(:street => "Oxford St")
         end
 
         before do
@@ -378,7 +482,7 @@ describe Mongoid::Dirty do
     context "when the document has not changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate
       end
 
       it "returns an empty hash" do
@@ -406,14 +510,14 @@ describe Mongoid::Dirty do
 
       it "returns the changes before the save" do
         person.previous_changes["title"].should ==
-          [ "Grand Poobah", "Captain Obvious" ]
+          [ nil, "Captain Obvious" ]
       end
     end
 
     context "when the document has not been saved" do
 
       it "returns an empty hash" do
-        person.previous_changes.should == {}
+        person.previous_changes.should be_nil
       end
     end
   end
@@ -423,7 +527,7 @@ describe Mongoid::Dirty do
     context "when the attribute has changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate(:title => "Grand Poobah")
       end
 
       before do
@@ -431,80 +535,31 @@ describe Mongoid::Dirty do
       end
 
       it "resets the value to the original" do
-        person.reset_attribute!("title")
-        person.title.should == "Grand Poobah"
+        person.send(:reset_attribute!, "title")
+        person.title.should be_nil
       end
 
       it "allows access via reset_(attribute)!" do
         person.reset_title!
-        person.title.should == "Grand Poobah"
+        person.title.should be_nil
       end
 
       it "removes the field from the changes" do
         person.reset_title!
-        person.changed.should == []
+        person.changed.should == [ "title" ]
       end
     end
 
     context "when the attribute has not changed" do
 
       let(:person) do
-        Person.new(:title => "Grand Poobah")
+        Person.instantiate(:title => "Grand Poobah")
       end
 
       it "does nothing" do
-        person.reset_attribute!("title")
-        person.title.should == "Grand Poobah"
+        person.send(:reset_attribute!, "title")
+        person.title.should be_nil
       end
     end
-  end
-
-  describe "#reset_modifications" do
-
-    context "when the attribute has changed" do
-
-      let(:person) do
-        Person.new(:title => "Grand Poobah")
-      end
-
-      before do
-        person.title = "Captain Obvious"
-        person.reset_modifications
-      end
-
-      it "does not reset the value" do
-        person.title.should == "Captain Obvious"
-      end
-
-      it "removes the note of the change" do
-        person.changed?.should == false
-      end
-    end
-  end
-
-  describe "#initialization" do
-
-    context "when ::add_dirty_methods is called" do
-
-      let!(:method_list) do
-        stub
-      end
-
-      it "checks for existing instance methods with both string and symbol arguments" do
-        Person.expects(:instance_methods).at_least_once.returns(method_list)
-        method_list.expects(:'include?').with('fieldname_change')
-        method_list.expects(:'include?').with('fieldname_changed?')
-        method_list.expects(:'include?').with('fieldname_was')
-        method_list.expects(:'include?').with('reset_fieldname!')
-        method_list.expects(:'include?').with(:'fieldname_change')
-        method_list.expects(:'include?').with(:'fieldname_changed?')
-        method_list.expects(:'include?').with(:'fieldname_was')
-        method_list.expects(:'include?').with(:'reset_fieldname!')
-
-        Person.send(:add_dirty_methods, 'fieldname')
-      end
-
-    end
-
   end
 end

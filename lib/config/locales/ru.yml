@@ -11,6 +11,9 @@ ru:
         invalid_type:
           Поле уже было определено в классе %{klass}, но получено как %{other}
           со значением %{value}.
+        invalid_options:
+          "Invalid option :%{invalid} provided to relation :%{name}. Valid options
+          are: %{valid}."
         unsupported_version:
           Версия MongoDB %{version} не поддерживается. Пожалуйста, обновитесь до
           версии %{mongo_version}.
@@ -39,3 +42,6 @@ ru:
         unsaved_document:
           Вызов методов create или create! запрещён у реляционной ассоциации
           (%{document}), у которой родитель (%{base}) не сохранён.
+        mixed_relations:
+          Referencing a(n) %{embedded} document from the %{root} document via a
+          relational association is not allowed since the %{embedded} is embedded.

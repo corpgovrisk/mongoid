@@ -25,8 +25,8 @@ describe Mongoid::Persistence::Atomic::PullAll do
       before do
         person.new_record = false
         collection.expects(:update).with(
-          person._selector,
-          { "$pullAll" => { :aliases => [ "008", "009" ] } },
+          person.atomic_selector,
+          { "$pullAll" => { "aliases" => [ "008", "009" ] } },
           { :safe => false }
         )
       end
@@ -41,10 +41,6 @@ describe Mongoid::Persistence::Atomic::PullAll do
 
       it "removes the field from the dirty attributes" do
         person.changes["aliases"].should be_nil
-      end
-
-      it "resets the document dirty flag" do
-        person.should_not be_changed
       end
 
       it "returns the new array value" do
@@ -72,10 +68,6 @@ describe Mongoid::Persistence::Atomic::PullAll do
 
       it "removes the field from the dirty attributes" do
         person.changes["aliases"].should be_nil
-      end
-
-      it "resets the document dirty flag" do
-        person.should_not be_changed
       end
 
       it "returns nil" do
