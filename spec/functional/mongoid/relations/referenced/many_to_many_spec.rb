@@ -705,11 +705,11 @@ describe Mongoid::Relations::Referenced::ManyToMany do
             preference.person_ids.should_not include(person.id)
           end
 
-          it "marks the documents as deleted" do
-            preference.should be_destroyed
+          it "does not delete the documents" do
+            preference.should_not be_destroyed
           end
 
-          it "deletes the documents from the db" do
+          it "persists the nullification" do
             person.reload.preferences.should be_empty
           end
 
@@ -769,6 +769,22 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
       it "returns the number of persisted documents" do
         person.preferences.count.should == 1
+      end
+    end
+
+    context "when appending to a loaded relation" do
+
+      let!(:preference) do
+        person.preferences.create(:name => "setting")
+      end
+
+      before do
+        person.preferences.count
+        person.preferences << Preference.create(:name => "two")
+      end
+
+      it "returns the number of persisted documents" do
+        person.preferences.count.should eq(2)
       end
     end
 
@@ -1717,6 +1733,25 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
     it "returns the sum value of the supplied field" do
       sum.should == 15
+    end
+  end
+
+  describe "#scoped" do
+
+    let(:person) do
+      Person.new
+    end
+
+    let(:scoped) do
+      person.preferences.scoped
+    end
+
+    it "returns the relation criteria" do
+      scoped.should be_a(Mongoid::Criteria)
+    end
+
+    it "returns with an empty selector" do
+      scoped.selector.should eq({ :_id => { "$in" => [] }})
     end
   end
 
