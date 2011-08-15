@@ -7,7 +7,7 @@ describe Mongoid::Relations::Referenced::Many do
   end
 
   before do
-    [ Person, Post, Movie, Rating ].map(&:delete_all)
+    [ Person, Post, Movie, Rating, Game ].map(&:delete_all)
   end
 
   [ :<<, :push, :concat ].each do |method|

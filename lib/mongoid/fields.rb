@@ -13,6 +13,7 @@ require "mongoid/fields/serializable/hash"
 require "mongoid/fields/serializable/integer"
 require "mongoid/fields/serializable/bignum"
 require "mongoid/fields/serializable/fixnum"
+require "mongoid/fields/serializable/nil_class"
 require "mongoid/fields/serializable/object"
 require "mongoid/fields/serializable/object_id"
 require "mongoid/fields/serializable/range"
@@ -88,7 +89,7 @@ module Mongoid #:nodoc
       #
       # @return [ Hash ] The field defaults.
       def defaults
-        @defaults ||= {}.tap do |defs|
+        {}.tap do |defs|
           fields.each_pair do |field_name, field|
             unless (default = field.default).nil?
               defs[field_name.to_s] = default
@@ -243,11 +244,11 @@ module Mongoid #:nodoc
             end
           else
             define_method(meth) do
-              value = read_attribute(name)
-              if value.is_a?(Array) || value.is_a?(Hash)
-                changed_attributes[name] = value.clone unless attribute_changed?(name)
+              read_attribute(name).tap do |value|
+                if value.is_a?(Array) || value.is_a?(Hash)
+                  changed_attributes[name] = value.clone unless attribute_changed?(name)
+                end
               end
-              value
             end
           end
           define_method("#{meth}=") do |value|

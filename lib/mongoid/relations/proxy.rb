@@ -16,7 +16,6 @@ module Mongoid # :nodoc:
 
       # Backwards compatibility with Mongoid beta releases.
       delegate :klass, :to => :metadata
-
       delegate :bind_one, :unbind_one, :to => :binding
 
       # Convenience for setting the target and the metadata properties since
@@ -34,6 +33,19 @@ module Mongoid # :nodoc:
         @base, @target, @metadata = base, target, metadata
         yield(self) if block_given?
         extend metadata.extension if metadata.extension?
+      end
+
+      # The default substitutable object for a relation proxy is the clone of
+      # the target.
+      #
+      # @example Get the substitutable.
+      #   proxy.substitutable
+      #
+      # @return [ Object ] A clone of the target.
+      #
+      # @since 2.1.6
+      def substitutable
+        target
       end
 
       protected
