@@ -41,7 +41,6 @@ module Mongoid # :nodoc:
           tap do |proxy|
             proxy.unbind_one
             return nil unless replacement
-            proxy.target.delete if persistable?
             proxy.target = replacement
             proxy.bind_one
           end
@@ -108,6 +107,27 @@ module Mongoid # :nodoc:
           # @since 2.1.0
           def criteria(metadata, object, type = nil)
             type.where(:_id => object)
+          end
+
+          # Get the criteria that is used to eager load a relation of this
+          # type.
+          #
+          # @example Get the eager load criteria.
+          #   Proxy.eager_load(metadata, criteria)
+          #
+          # @param [ Metadata ] metadata The relation metadata.
+          # @param [ Criteria ] criteria The criteria being used.
+          #
+          # @return [ Criteria ] The criteria to eager load the relation.
+          #
+          # @since 2.2.0
+          def eager_load(metadata, criteria)
+            metadata.klass.any_in(
+              :_id =>
+                criteria.only(metadata.foreign_key).map do |doc|
+                  doc.send(metadata.foreign_key)
+                end.uniq
+            ).entries
           end
 
           # Returns true if the relation is an embedded one. In this case

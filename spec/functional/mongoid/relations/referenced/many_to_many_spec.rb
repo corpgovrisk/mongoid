@@ -1242,6 +1242,19 @@ describe Mongoid::Relations::Referenced::ManyToMany do
     end
   end
 
+  describe ".eager_load" do
+
+    let(:metadata) do
+      Person.relations["preferences"]
+    end
+
+    it "raises an error" do
+      expect {
+        described_class.eager_load(metadata, Person.all)
+      }.to raise_error
+    end
+  end
+
   describe "#exists?" do
 
     let!(:person) do
@@ -1885,6 +1898,57 @@ describe Mongoid::Relations::Referenced::ManyToMany do
       expect {
         preference.reload
       }.to raise_error(Mongoid::Errors::DocumentNotFound)
+    end
+  end
+
+  context "when reloading the relation" do
+
+    let!(:person) do
+      Person.create(:ssn => "243-41-9678")
+    end
+
+    let!(:preference_one) do
+      Preference.create(:name => "one")
+    end
+
+    let!(:preference_two) do
+      Preference.create(:name => "two")
+    end
+
+    before do
+      person.preferences << preference_one
+    end
+
+    context "when the relation references the same documents" do
+
+      before do
+        Preference.collection.update(
+          { :_id => preference_one.id }, { "$set" => { :name => "reloaded" }}
+        )
+      end
+
+      let(:reloaded) do
+        person.preferences(true)
+      end
+
+      it "reloads the document from the database" do
+        reloaded.first.name.should eq("reloaded")
+      end
+    end
+
+    context "when the relation references different documents" do
+
+      before do
+        person.preferences << preference_two
+      end
+
+      let(:reloaded) do
+        person.preferences(true)
+      end
+
+      it "reloads the new document from the database" do
+        reloaded.should eq([ preference_one, preference_two ])
+      end
     end
   end
 end

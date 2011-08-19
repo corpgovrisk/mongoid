@@ -103,12 +103,7 @@ module Mongoid #:nodoc
     #
     # @return [ Array<String> ] An array of bad field names.
     def destructive_fields
-      @destructive_fields ||= lambda {
-        klass = Class.new do
-          include Mongoid::Document
-        end
-        klass.instance_methods(true).collect { |method| method.to_s }
-      }.call
+      Components.prohibited_methods
     end
 
     # Configure mongoid from a hash. This is usually called after parsing a
@@ -207,7 +202,7 @@ module Mongoid #:nodoc
     # set is not a valid +Mongo::DB+, then an error will be raised.
     #
     # @example Set the master database.
-    #   config.master = Mongo::Connection.db("test")
+    #   config.master = Mongo::Connection.new.db("test")
     #
     # @param [ Mongo::DB ] db The master database.
     #

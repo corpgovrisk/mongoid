@@ -7,6 +7,10 @@ module Mongoid # :nodoc:
     module Macros
       extend ActiveSupport::Concern
 
+      # Convenience methods for the instance to know about attributes that
+      # are located at the class level.
+      delegate :associations, :relations, :to => "self.class"
+
       included do
         class_attribute :embedded
         class_attribute :relations
@@ -22,10 +26,6 @@ module Mongoid # :nodoc:
           alias :associations :relations
           alias :embedded? :embedded
         end
-
-        # Convenience methods for the instance to know about attributes that
-        # are located at the class level.
-        delegate :associations, :relations, :to => "self.class"
       end
 
       module ClassMethods #:nodoc:
