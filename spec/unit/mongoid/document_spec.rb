@@ -649,6 +649,7 @@ describe Mongoid::Document do
     end
 
     context "when not frozen" do
+
       it "freezes attributes" do
         person.freeze.should == person
         lambda { person.title = "something" }.should raise_error
@@ -656,13 +657,33 @@ describe Mongoid::Document do
     end
 
     context "when frozen" do
+
       before do
         person.raw_attributes.freeze
       end
+
       it "keeps things frozen" do
         person.freeze
         lambda { person.title = "something" }.should raise_error
       end
+    end
+  end
+
+  describe ".logger" do
+
+    it "returns the mongoid logger" do
+      Person.logger.should eq(Mongoid.logger)
+    end
+  end
+
+  describe "#logger" do
+
+    let(:person) do
+      Person.new
+    end
+
+    it "returns the mongoid logger" do
+      person.send(:logger).should eq(Mongoid.logger)
     end
   end
 end

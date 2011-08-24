@@ -213,6 +213,15 @@ module Mongoid #:nodoc:
 
     private
 
+    # Returns the logger
+    #
+    # @return [ Logger ] The configured logger or a default Logger instance.
+    #
+    # @since 2.2.0
+    def logger
+      Mongoid.logger
+    end
+
     # Implement this for calls to flatten on array.
     #
     # @example Get the document as an array.
@@ -271,8 +280,22 @@ module Mongoid #:nodoc:
       end
 
       # Set the i18n scope to overwrite ActiveModel.
+      #
+      # @return [ Symbol ] :mongoid
       def i18n_scope
         :mongoid
+      end
+
+      # Returns the logger
+      #
+      # @example Get the logger.
+      #   Person.logger
+      #
+      # @return [ Logger ] The configured logger or a default Logger instance.
+      #
+      # @since 2.2.0
+      def logger
+        Mongoid.logger
       end
     end
   end

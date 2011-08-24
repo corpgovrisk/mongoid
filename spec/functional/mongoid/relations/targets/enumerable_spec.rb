@@ -1166,6 +1166,60 @@ describe Mongoid::Relations::Targets::Enumerable do
     end
   end
 
+  describe "#to_json" do
+
+    let(:person) do
+      Person.create(:ssn => "422-21-9687")
+    end
+
+    let!(:post) do
+      Post.create(:title => "test", :person_id => person.id)
+    end
+
+    let(:criteria) do
+      Post.where(:person_id => person.id)
+    end
+
+    let!(:enumerable) do
+      described_class.new(criteria)
+    end
+
+    before do
+      enumerable << post
+    end
+
+    let!(:json) do
+      enumerable.to_json
+    end
+
+    it "serializes the enumerable" do
+      json.should include(post.title)
+    end
+  end
+
+  describe "#to_json(parameters)" do
+
+    let(:person) do
+      Person.create(:ssn => "422-21-9687")
+    end
+
+    let!(:post) do
+      Post.create(:title => "test", :person_id => person.id)
+    end
+
+    let(:criteria) do
+      Post.where(:person_id => person.id)
+    end
+
+    let!(:json) do
+      person.posts.to_json({:except => 'title'})
+    end
+
+    it "serializes the enumerable" do
+      json.should_not include(post.title)
+    end
+  end
+
   describe "#uniq" do
 
     let(:person) do
