@@ -122,12 +122,11 @@ module Mongoid # :nodoc:
           #
           # @since 2.2.0
           def eager_load(metadata, criteria)
-            metadata.klass.any_in(
-              :_id =>
-                criteria.only(metadata.foreign_key).map do |doc|
-                  doc.send(metadata.foreign_key)
-                end.uniq
-            ).entries
+            raise Errors::EagerLoad.new(metadata.name) if metadata.polymorphic?
+            klass, foreign_key = metadata.klass, metadata.foreign_key
+            klass.any_in("_id" => criteria.load_ids(foreign_key).uniq).each do |doc|
+              IdentityMap.set(doc)
+            end
           end
 
           # Returns true if the relation is an embedded one. In this case

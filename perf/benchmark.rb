@@ -6,7 +6,7 @@ Mongoid.configure do |config|
   config.master = Mongo::Connection.new.db("mongoid_perf_test")
 end
 
-Mongoid.master.collections.select {|c| c.name !~ /system/ }.each(&:drop)
+Mongoid.master.collections.select {|c| c.name !~ /system/ }.each(&:remove)
 
 puts "Creating indexes..."
 

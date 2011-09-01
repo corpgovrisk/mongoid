@@ -142,7 +142,7 @@ module Mongoid # :nodoc:
         # @since 2.0.0.rc.1
         def nullify
           criteria.pull(metadata.inverse_foreign_key, base.id)
-          unless base.destroyed?
+          if persistable?
             base.set(
               metadata.foreign_key,
               base.send(metadata.foreign_key).clear
@@ -245,9 +245,7 @@ module Mongoid # :nodoc:
           #
           # @since 2.2.0
           def eager_load(metadata, criteria)
-            raise RuntimeError.new(
-              "Eager loading many-to-many relations is not supported."
-            )
+            raise Errors::EagerLoad.new(metadata.name)
           end
 
           # Returns true if the relation is an embedded one. In this case

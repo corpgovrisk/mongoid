@@ -32,7 +32,6 @@ module Mongoid #:nodoc:
     include Criterion::Optional
 
     attr_accessor \
-      :collection,
       :documents,
       :embedded,
       :ids,
@@ -107,6 +106,18 @@ module Mongoid #:nodoc:
       else
         return false
       end
+    end
+
+    # Get the collection associated with the criteria.
+    #
+    # @example Get the collection.
+    #   criteria.collection
+    #
+    # @return [ Collection ] The collection.
+    #
+    # @since 2.2.0
+    def collection
+      klass.collection
     end
 
     # Return or create the context in which this criteria should be executed.
@@ -316,6 +327,18 @@ module Mongoid #:nodoc:
       other.is_a?(Criteria) ? other.entries : other
     end
 
+    # Get the raw driver collection from the criteria.
+    #
+    # @example Get the raw driver collection.
+    #   criteria.driver
+    #
+    # @return [ Mongo::Collection ] The driver collection.
+    #
+    # @since 2.2.0
+    def driver
+      collection.driver
+    end
+
     # Clone or dup the current +Criteria+. This will return a new criteria with
     # the selector, options, klass, embedded options, etc intact.
     #
@@ -331,6 +354,7 @@ module Mongoid #:nodoc:
     def initialize_copy(other)
       @selector = other.selector.dup
       @options = other.options.dup
+      @includes = other.inclusions.dup
       @context = nil
     end
 

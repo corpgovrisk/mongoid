@@ -26,7 +26,7 @@ module Mongoid # :nodoc:
             args.flatten.each do |doc|
               next unless doc
               append(doc)
-              doc.save if persistable?
+              doc.save if persistable? && !assigning?
             end
           end
         end
@@ -124,7 +124,11 @@ module Mongoid # :nodoc:
         def delete(document)
           target.delete_one(document).tap do |doc|
             if doc && !binding?
-              doc.delete(:suppress => true)
+              if assigning?
+                base.add_atomic_pull(doc)
+              else
+                doc.delete(:suppress => true)
+              end
               unbind_one(doc)
             end
             reindex
@@ -228,6 +232,9 @@ module Mongoid # :nodoc:
         def substitute(replacement)
           tap do |proxy|
             if replacement.blank?
+              if assigning?
+                base.atomic_unsets.push(proxy.first.atomic_path)
+              end
               proxy.clear
             else
               atomically(:$set) do
@@ -238,7 +245,7 @@ module Mongoid # :nodoc:
                 proxy.target.each_with_index do |doc, index|
                   integrate(doc)
                   doc._index = index
-                  doc.save if base.persisted?
+                  doc.save if base.persisted? && !assigning?
                 end
               end
             end
@@ -377,7 +384,7 @@ module Mongoid # :nodoc:
           criteria.size.tap do
             criteria.each do |doc|
               target.delete_one(doc)
-              doc.send(method, :suppress => true)
+              doc.send(method, :suppress => true) unless assigning?
               unbind_one(doc)
             end
             reindex

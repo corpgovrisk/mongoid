@@ -575,20 +575,50 @@ describe Mongoid::Relations::Targets::Enumerable do
 
       context "when unloaded is not empty" do
 
-        let!(:post) do
-          Post.create(:person_id => person.id)
+        context "when added is empty" do
+
+          let!(:post) do
+            Post.create(:person_id => person.id)
+          end
+
+          let(:first) do
+            enumerable.first
+          end
+
+          it "returns the first unloaded doc" do
+            first.should eq(post)
+          end
+
+          it "does not load the enumerable" do
+            enumerable.should_not be_loaded
+          end
         end
 
-        let(:first) do
-          enumerable.first
-        end
+        context "when added is not empty" do
 
-        it "returns the first unloaded doc" do
-          first.should eq(post)
-        end
+          let!(:post) do
+            Post.create(:person_id => person.id)
+          end
 
-        it "does not load the enumerable" do
-          enumerable.should_not be_loaded
+          let(:post_two) do
+            Post.new(:person_id => person.id)
+          end
+
+          before do
+            enumerable << post_two
+          end
+
+          let(:first) do
+            enumerable.first
+          end
+
+          it "returns the first added doc" do
+            first.should eq(post_two)
+          end
+
+          it "does not load the enumerable" do
+            enumerable.should_not be_loaded
+          end
         end
       end
 
@@ -1217,6 +1247,62 @@ describe Mongoid::Relations::Targets::Enumerable do
 
     it "serializes the enumerable" do
       json.should_not include(post.title)
+    end
+  end
+
+  describe "#as_json" do
+
+    let(:person) do
+      Person.create(:ssn => "422-21-9687")
+    end
+
+    let!(:post) do
+      Post.create(:title => "test", :person_id => person.id)
+    end
+
+    let(:criteria) do
+      Post.where(:person_id => person.id)
+    end
+
+    let!(:enumerable) do
+      described_class.new(criteria)
+    end
+
+    before do
+      enumerable << post
+    end
+
+    let!(:json) do
+      enumerable.as_json
+    end
+
+    it "serializes the enumerable" do
+      json.size.should == 1
+      json[0]['title'].should == post.title
+    end
+  end
+
+  describe "#as_json(parameters)" do
+
+    let(:person) do
+      Person.create(:ssn => "422-21-9687")
+    end
+
+    let!(:post) do
+      Post.create(:title => "test", :person_id => person.id)
+    end
+
+    let(:criteria) do
+      Post.where(:person_id => person.id)
+    end
+
+    let!(:json) do
+      person.posts.as_json({:except => 'title'})
+    end
+
+    it "serializes the enumerable" do
+      json.size.should == 1
+      json[0].keys.should_not include('title')
     end
   end
 

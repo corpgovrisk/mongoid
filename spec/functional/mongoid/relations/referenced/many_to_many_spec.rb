@@ -7,8 +7,11 @@ describe Mongoid::Relations::Referenced::ManyToMany do
   end
 
   before do
-    [ Person, Preference, Event, Tag,
-      UserAccount, Agent, Account, Business, User ].map(&:delete_all)
+    [
+      Person, Preference, Event, Tag,
+      UserAccount, Agent, Account, Business, User,
+      Artwork, Exhibition, Exhibitor
+    ].map(&:delete_all)
   end
 
   [ :<<, :push, :concat ].each do |method|
@@ -207,6 +210,29 @@ describe Mongoid::Relations::Referenced::ManyToMany do
             it "sets the inverse side of the relation" do
               loaded_event.administrators.should == [ person ]
             end
+          end
+        end
+
+        context "when the relation also includes a has_many relation" do
+
+          let(:artwork) do
+            Artwork.create
+          end
+
+          let(:exhibition) do
+            Exhibition.create
+          end
+
+          let(:exhibitor) do
+            Exhibitor.create(:exhibition => exhibition)
+          end
+
+          before do
+            artwork.exhibitors << exhibitor
+          end
+
+          it "creates a single artwork object" do
+            Artwork.count.should == 1
           end
         end
 
@@ -1127,7 +1153,7 @@ describe Mongoid::Relations::Referenced::ManyToMany do
           end
 
           it "deletes the document from the relation" do
-            # @todo: Durran: 
+            # @todo: Durran:
             reloaded.related.should be_empty
           end
 
@@ -1252,7 +1278,7 @@ describe Mongoid::Relations::Referenced::ManyToMany do
     it "raises an error" do
       expect {
         described_class.eager_load(metadata, Person.all)
-      }.to raise_error
+      }.to raise_error(Mongoid::Errors::EagerLoad)
     end
   end
 
@@ -1809,6 +1835,39 @@ describe Mongoid::Relations::Referenced::ManyToMany do
         it "returns the total number of documents" do
           person.preferences.send(method).should == 2
         end
+      end
+    end
+  end
+
+  context "when setting the ids directly after the documents" do
+
+    let!(:person) do
+      Person.create!(:ssn => "132-11-1433", :title => "The Boss")
+    end
+
+    let!(:girlfriend_house) do
+      House.create!(:name => "Girlfriend")
+    end
+
+    let!(:wife_house) do
+      House.create!(:name => "Wife")
+    end
+
+    let!(:exwife_house) do
+      House.create!(:name => "Ex-Wife")
+    end
+
+    before do
+      person.update_attributes(
+        :houses => [ wife_house, exwife_house, girlfriend_house ]
+      )
+      person.update_attributes(:house_ids => [ girlfriend_house.id ])
+    end
+
+    context "when reloading" do
+
+      it "properly sets the references" do
+        person.houses(true).should eq([ girlfriend_house ])
       end
     end
   end
