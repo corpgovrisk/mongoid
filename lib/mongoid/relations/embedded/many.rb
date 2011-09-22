@@ -232,7 +232,7 @@ module Mongoid # :nodoc:
         def substitute(replacement)
           tap do |proxy|
             if replacement.blank?
-              if assigning?
+              if assigning? && !proxy.empty?
                 base.atomic_unsets.push(proxy.first.atomic_path)
               end
               proxy.clear
@@ -266,6 +266,19 @@ module Mongoid # :nodoc:
               attributes << doc.as_document
             end
           end
+        end
+
+        # Get a criteria for the embedded documents without the default scoping
+        # applied.
+        #
+        # @example Get the unscoped criteria.
+        #   person.addresses.unscoped
+        #
+        # @return [ Criteria ] The unscoped criteria.
+        #
+        # @since 2.2.1
+        def unscoped
+          criteria(false)
         end
 
         private
@@ -306,8 +319,8 @@ module Mongoid # :nodoc:
         #   relation.criteria
         #
         # @return [ Criteria ] A new criteria.
-        def criteria
-          klass.criteria(true).tap do |criterion|
+        def criteria(scoped = true)
+          klass.criteria(true, scoped).tap do |criterion|
             criterion.documents = target
           end
         end

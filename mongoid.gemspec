@@ -17,12 +17,12 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = ">= 1.3.6"
   s.rubyforge_project         = "mongoid"
 
-  s.add_dependency("activemodel", ["~> 3.0"])
+  s.add_dependency("activemodel", ["~> 3.1"])
   s.add_dependency("tzinfo", ["~> 0.3.22"])
-  s.add_dependency("mongo", ["~> 1.3"])
+  s.add_dependency("mongo", ["~> 1.4"])
 
   s.add_development_dependency("rdoc", ["~> 3.5.0"])
-  s.add_development_dependency("bson_ext", ["~> 1.3"])
+  s.add_development_dependency("bson_ext", ["~> 1.4"])
   s.add_development_dependency("mocha", ["~> 0.9.12"])
   s.add_development_dependency("rspec", ["~> 2.6"])
   s.add_development_dependency("watchr", ["~> 0.6"])

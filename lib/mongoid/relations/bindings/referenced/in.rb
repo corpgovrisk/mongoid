@@ -22,13 +22,13 @@ module Mongoid # :nodoc:
             unless binding?
               binding do
                 inverse = metadata.inverse(target)
-                base.send(metadata.foreign_key_setter, target.id)
+                base.you_must(metadata.foreign_key_setter, target.id)
                 if metadata.inverse_type
-                  base.send(metadata.inverse_type_setter, target.class.model_name)
+                  base.you_must(metadata.inverse_type_setter, target.class.model_name)
                 end
                 if inverse
                   inverse_metadata = metadata.inverse_metadata(target)
-                  if inverse_metadata != metadata
+                  if inverse_metadata != metadata && !inverse_metadata.nil?
                     base.metadata = inverse_metadata
                     if base.referenced_many?
                       target.send(inverse).push(base)
@@ -54,9 +54,9 @@ module Mongoid # :nodoc:
             unless binding?
               binding do
                 inverse = metadata.inverse(target)
-                base.send(metadata.foreign_key_setter, nil)
+                base.you_must(metadata.foreign_key_setter, nil)
                 if metadata.inverse_type
-                  base.send(metadata.inverse_type_setter, nil)
+                  base.you_must(metadata.inverse_type_setter, nil)
                 end
                 if inverse
                   if base.referenced_many?

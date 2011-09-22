@@ -13,6 +13,7 @@ require "mongoid/fields/serializable/hash"
 require "mongoid/fields/serializable/integer"
 require "mongoid/fields/serializable/bignum"
 require "mongoid/fields/serializable/fixnum"
+require "mongoid/fields/serializable/localized"
 require "mongoid/fields/serializable/nil_class"
 require "mongoid/fields/serializable/object"
 require "mongoid/fields/serializable/object_id"
@@ -227,20 +228,13 @@ module Mongoid #:nodoc
       # @param [ Hash ] options The hash of options.
       def add_field(name, options = {})
         meth = options.delete(:as) || name
-        Mappings.for(
-          options[:type], options[:identity]
-        ).new(name, options).tap do |field|
+        type = options[:localize] ? Fields::Serializable::Localized : options[:type]
+        Mappings.for(type, options[:identity]).instantiate(name, options).tap do |field|
           fields[name] = field
           defaults << name unless field.default.nil?
           create_accessors(name, meth, options)
           process_options(field)
-
-          # @todo Durran: Refactor this once we can depend on at least
-          #   ActiveModel greater than 3.0.9. They finally have the ability then
-          #   to add attribute methods one at a time. This code will make class
-          #   load times extremely slow.
-          undefine_attribute_methods
-          define_attribute_methods(fields.keys)
+          define_attribute_method(name)
         end
       end
 
@@ -305,7 +299,9 @@ module Mongoid #:nodoc
             define_method(meth) do
               read_attribute(name).tap do |value|
                 if value.is_a?(Array) || value.is_a?(Hash)
-                  changed_attributes[name] = value.clone unless attribute_changed?(name)
+                  unless changed_attributes.include?(name)
+                    changed_attributes[name] = value.clone
+                  end
                 end
               end
             end

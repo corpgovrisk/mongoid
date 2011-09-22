@@ -7,9 +7,7 @@ module Mongoid #:nodoc:
     extend ActiveSupport::Concern
     include Mongoid::Components
 
-    included do
-      attr_reader :new_record
-    end
+    attr_reader :new_record
 
     # Default comparison is via the string version of the id.
     #
@@ -181,7 +179,7 @@ module Mongoid #:nodoc:
       attributes.tap do |attrs|
         relations.each_pair do |name, meta|
           if meta.embedded?
-            relation = send(name, false, :continue => false)
+            relation = send(name)
             attrs[name] = relation.as_document unless relation.blank?
           end
         end

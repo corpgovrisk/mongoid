@@ -2307,7 +2307,7 @@ describe Mongoid::Relations::Referenced::Many do
         end
 
         it "returns 1" do
-          movie.ratings.send(method).should == 1
+          movie.ratings.send(method).should eq(1)
         end
       end
 
@@ -2319,7 +2319,7 @@ describe Mongoid::Relations::Referenced::Many do
         end
 
         it "returns the total number of documents" do
-          movie.ratings.send(method).should == 2
+          movie.ratings.send(method).should eq(2)
         end
       end
     end
@@ -2405,6 +2405,17 @@ describe Mongoid::Relations::Referenced::Many do
       it "reloads the new document from the database" do
         reloaded.should eq([ post_one, post_two ])
       end
+    end
+  end
+
+  context "when the parent is using integer ids" do
+
+    let(:jar) do
+      Jar.create(:_id => 1)
+    end
+
+    it "allows creation of the document" do
+      jar.id.should eq(1)
     end
   end
 end

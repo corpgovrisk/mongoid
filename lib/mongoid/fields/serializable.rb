@@ -23,9 +23,10 @@ module Mongoid #:nodoc:
     #     end
     #   end
     module Serializable
+      extend ActiveSupport::Concern
 
       # Set readers for the instance variables.
-      attr_reader :default, :label, :name, :options
+      attr_accessor :default, :label, :localize, :name, :options
 
       # When reading the field do we need to cast the value? This holds true when
       # times are stored or for big decimals which are stored as strings.
@@ -88,21 +89,16 @@ module Mongoid #:nodoc:
         end
       end
 
-      # Create the new field with a name and optional additional options.
+      # Is the field localized or not?
       #
-      # @example Create the new field.
-      #   Field.new(:name, :type => String)
+      # @example Is the field localized?
+      #   field.localized?
       #
-      # @param [ Hash ] options The field options.
+      # @return [ true, false ] If the field is localized.
       #
-      # @option options [ Class ] :type The class of the field.
-      # @option options [ Object ] :default The default value for the field.
-      # @option options [ String ] :label The field's label.
-      #
-      # @since 2.1.0
-      def initialize(name, options = {})
-        @name, @options = name, options
-        @default, @label = options[:default], options[:label]
+      # @since 2.3.0
+      def localized?
+        !!@localize
       end
 
       # Get the metadata for the field if its a foreign key.
@@ -164,6 +160,34 @@ module Mongoid #:nodoc:
       # @since 2.1.0
       def versioned?
         @versioned ||= (options[:versioned].nil? ? true : options[:versioned])
+      end
+
+      module ClassMethods #:nodoc:
+
+        # Create the new field with a name and optional additional options.
+        #
+        # @example Create the new field.
+        #   Field.new(:name, :type => String)
+        #
+        # @param [ Hash ] options The field options.
+        #
+        # @option options [ Class ] :type The class of the field.
+        # @option options [ Object ] :default The default value for the field.
+        # @option options [ String ] :label The field's label.
+        #
+        # @since 2.1.0
+        def instantiate(name, options = {})
+          allocate.tap do |field|
+            field.name = name
+            field.options = options
+            field.label = options[:label]
+            field.localize = options[:localize]
+            field.default = options[:default]
+            unless field.default
+              field.default = {} if field.localized?
+            end
+          end
+        end
       end
     end
   end

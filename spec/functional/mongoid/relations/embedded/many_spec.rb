@@ -3,7 +3,8 @@ require "spec_helper"
 describe Mongoid::Relations::Embedded::Many do
 
   before do
-    [ Person, Account, Acolyte, League, Quiz, Role, Patient ].map(&:delete_all)
+    [ Person, Account, Acolyte, League,
+      Quiz, Role, Patient, Product, Purchase ].map(&:delete_all)
   end
 
   [ :<<, :push, :concat ].each do |method|
@@ -1442,6 +1443,28 @@ describe Mongoid::Relations::Embedded::Many do
         found.state.should == "CA"
       end
     end
+
+    context "when the child belongs to another document" do
+
+      let(:product) do
+        Product.create
+      end
+
+      let(:purchase) do
+        Purchase.create
+      end
+
+      let(:line_item) do
+        purchase.line_items.find_or_create_by(
+          :product_id => product.id,
+          :product_type => product.class.name
+        )
+      end
+
+      it "properly creates the document" do
+        line_item.product.should eq(product)
+      end
+    end
   end
 
   describe "#find_or_initialize_by" do
@@ -1695,6 +1718,29 @@ describe Mongoid::Relations::Embedded::Many do
 
     it "returns the sum of all the supplied field values" do
       sum.should == 15
+    end
+  end
+
+  describe "#unscoped" do
+
+    let(:person) do
+      Person.new
+    end
+
+    let(:unscoped) do
+      person.videos.unscoped
+    end
+
+    it "returns the relation criteria" do
+      unscoped.should be_a(Mongoid::Criteria)
+    end
+
+    it "returns with empty options" do
+      unscoped.options.should be_empty
+    end
+
+    it "returns with an empty selector" do
+      unscoped.selector.should be_empty
     end
   end
 
