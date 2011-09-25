@@ -2,6 +2,42 @@
 
 For instructions on upgrading to newer versions, visit [mongoid.org](http://mongoid.org/docs/upgrading.html).
 
+## 2.3.0 (master - in development)
+
+### New Features
+
+* Mongoid now supports basic localized fields, storing them under the covers as a
+  hash of locale => value pairs. `field :name, localized: true`
+
+* \#1256 Mongoid now can create indexes for models in Rails engines. (Caio Filipini)
+
+* \#1196 Timestamps can now be turned off on a call-by-call basis via the use
+  of #timeless: `person.timeless.save`, `Person.timeless.create(:title => "Sir")`.
+
+* \#1275 For applications that default safe mode to true, you can now tell a
+  single operation to persist without safe mode via #unsafely:
+  `person.unsafely.save`, `Person.unsafely.create`. (Matt Sanders)
+
+* \#1228 Allow pre formatting of compsoite keys by passing a block to #key.
+  (Ben Hundley)
+
+### Major Changes
+
+* Mongoid now depends on Active Model 3.1 and higher.
+
+* Mongoid now depends on the Mongo Ruby Driver 1.4 and higher.
+
+### Resolved Issues
+
+* \#1273 Mongoid.preload_models now checks if preload configuration option is set,
+  where Mongoid.load_models always loads everything. (Ryan McGeary)
+
+* \#1052 `alias_attribute` now works again as expected.
+
+* \#939 Apply default attributes when upcasting via #becomes. (Christos Pappas)
+
+* \#932 Fixed casting of integer fields with leading zeros.
+
 ## 2.2.1
 
 ### Resolved Issues

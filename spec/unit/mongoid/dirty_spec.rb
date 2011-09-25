@@ -52,12 +52,12 @@ describe Mongoid::Dirty do
         Person.new(:pets => true)
       end
 
-      it "returns an array of the default value and new value" do
-        person.send(:attribute_change, "pets").should eq([ false, true ])
+      it "returns an array of nil and new value" do
+        person.send(:attribute_change, "pets").should eq([ nil, true ])
       end
 
       it "allows access via (attribute)_change" do
-        person.pets_change.should eq([ false, true ])
+        person.pets_change.should eq([ nil, true ])
       end
     end
 
@@ -377,6 +377,64 @@ describe Mongoid::Dirty do
 
       it "returns the default value" do
         person.send(:attribute_was, "pets").should be_false
+      end
+    end
+  end
+
+  describe "#attribute_will_change!" do
+
+    let(:aliases) do
+      [ "007" ]
+    end
+
+    let(:person) do
+      Person.new(:aliases => aliases)
+    end
+
+    before do
+      person.changed_attributes.clear
+    end
+
+    context "when the value is duplicable" do
+
+      context "when the attribute has not been cloned" do
+
+        before do
+          person.aliases_will_change!
+        end
+
+        let(:changed) do
+          person.changed_attributes
+        end
+
+        it "clones the value" do
+          changed["aliases"].should_not equal(aliases)
+        end
+
+        it "puts the old value in the changes" do
+          changed["aliases"].should eq(aliases)
+        end
+      end
+
+      context "when the attribute has been flagged" do
+
+        before do
+          person.changed_attributes["aliases"] = aliases
+          aliases.expects(:clone).never
+          person.aliases_will_change!
+        end
+
+        let(:changed) do
+          person.changed_attributes
+        end
+
+        it "does not clone the value" do
+          changed["aliases"].should equal(aliases)
+        end
+
+        it "retains the first value in the changes" do
+          changed["aliases"].should eq(aliases)
+        end
       end
     end
   end

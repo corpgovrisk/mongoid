@@ -124,10 +124,11 @@ module Mongoid #:nodoc:
     def initialize(attrs = nil)
       building do
         @new_record = true
-        @attributes = apply_default_attributes
+        @attributes = {}
         process(attrs) do
           yield self if block_given?
           identify
+          apply_defaults
         end
         run_callbacks(:initialize) { self }
       end
@@ -150,7 +151,7 @@ module Mongoid #:nodoc:
       end
       @attributes = {}.merge(reloaded || {})
       changed_attributes.clear
-      apply_default_attributes
+      apply_defaults
       tap do
         reload_relations
         run_callbacks(:initialize)
@@ -199,13 +200,13 @@ module Mongoid #:nodoc:
     # @return [ Document ] An instance of the specified class.
     def becomes(klass)
       unless klass.include?(Mongoid::Document)
-        raise ArgumentError, 'A class which includes Mongoid::Document is expected'
+        raise ArgumentError, "A class which includes Mongoid::Document is expected"
       end
-      klass.new.tap do |became|
-        became.instance_variable_set('@attributes', @attributes)
-        became.instance_variable_set('@errors', @errors)
-        became.instance_variable_set('@new_record', new_record?)
-        became.instance_variable_set('@destroyed', destroyed?)
+      klass.instantiate(frozen? ? attributes.dup : attributes).tap do |became|
+        became.instance_variable_set(:@errors, errors)
+        became.instance_variable_set(:@new_record, new_record?)
+        became.instance_variable_set(:@destroyed, destroyed?)
+        became._type = klass.to_s
       end
     end
 
@@ -261,7 +262,7 @@ module Mongoid #:nodoc:
         attributes = attrs || {}
         allocate.tap do |doc|
           doc.instance_variable_set(:@attributes, attributes)
-          doc.send(:apply_default_attributes)
+          doc.send(:apply_defaults)
           IdentityMap.set(doc)
           doc.run_callbacks(:initialize) { doc }
         end
