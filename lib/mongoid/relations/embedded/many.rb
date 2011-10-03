@@ -26,7 +26,7 @@ module Mongoid # :nodoc:
             args.flatten.each do |doc|
               next unless doc
               append(doc)
-              doc.save if persistable? && !assigning?
+              doc.save if persistable? && !_assigning?
             end
           end
         end
@@ -40,11 +40,12 @@ module Mongoid # :nodoc:
         #   person.people.build(:name => "Bozo")
         #
         # @param [ Hash ] attributes The attributes to build the document with.
+        # @param [ Hash ] options The scoped assignment options.
         # @param [ Class ] type Optional class to build the document with.
         #
         # @return [ Document ] The new document.
-        def build(attributes = {}, type = nil)
-          Factory.build(type || metadata.klass, attributes).tap do |doc|
+        def build(attributes = {}, options = {}, type = nil)
+          Factory.build(type || metadata.klass, attributes, options).tap do |doc|
             doc.identify
             append(doc)
             yield(doc) if block_given?
@@ -86,11 +87,12 @@ module Mongoid # :nodoc:
         #   person.movies.create(:name => "Bozo")
         #
         # @param [ Hash ] attributes The attributes to build the document with.
+        # @param [ Hash ] options The scoped assignment options.
         # @param [ Class ] type Optional class to create the document with.
         #
         # @return [ Document ] The newly created document.
-        def create(attributes = {}, type = nil, &block)
-          build(attributes, type, &block).tap { |doc| doc.save }
+        def create(attributes = {}, options = {}, type = nil, &block)
+          build(attributes, options, type, &block).tap { |doc| doc.save }
         end
 
         # Create a new document in the relation. This is essentially the same
@@ -101,13 +103,14 @@ module Mongoid # :nodoc:
         #   person.addresses.create!(:street => "Unter der Linden")</tt>
         #
         # @param [ Hash ] attributes The attributes to build the document with.
+        # @param [ Hash ] options The scoped assignment options.
         # @param [ Class ] type Optional class to create the document with.
         #
         # @raise [ Errors::Validations ] If a validation error occured.
         #
         # @return [ Document ] The newly created document.
-        def create!(attributes = {}, type = nil, &block)
-          build(attributes, type, &block).tap { |doc| doc.save! }
+        def create!(attributes = {}, options = {}, type = nil, &block)
+          build(attributes, options, type, &block).tap { |doc| doc.save! }
         end
 
         # Delete the supplied document from the target. This method is proxied
@@ -124,7 +127,7 @@ module Mongoid # :nodoc:
         def delete(document)
           target.delete_one(document).tap do |doc|
             if doc && !binding?
-              if assigning?
+              if _assigning?
                 base.add_atomic_pull(doc)
               else
                 doc.delete(:suppress => true)
@@ -232,7 +235,7 @@ module Mongoid # :nodoc:
         def substitute(replacement)
           tap do |proxy|
             if replacement.blank?
-              if assigning? && !proxy.empty?
+              if _assigning? && !proxy.empty?
                 base.atomic_unsets.push(proxy.first.atomic_path)
               end
               proxy.clear
@@ -242,10 +245,13 @@ module Mongoid # :nodoc:
                   replacement = Many.builder(metadata, replacement).build
                 end
                 proxy.target = replacement.compact
+                if _assigning?
+                  base.delayed_atomic_sets[metadata.name.to_s] = proxy.as_document
+                end
                 proxy.target.each_with_index do |doc, index|
                   integrate(doc)
                   doc._index = index
-                  doc.save if base.persisted? && !assigning?
+                  doc.save if base.persisted? && !_assigning?
                 end
               end
             end
@@ -397,7 +403,7 @@ module Mongoid # :nodoc:
           criteria.size.tap do
             criteria.each do |doc|
               target.delete_one(doc)
-              doc.send(method, :suppress => true) unless assigning?
+              doc.send(method, :suppress => true) unless _assigning?
               unbind_one(doc)
             end
             reindex

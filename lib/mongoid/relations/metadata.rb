@@ -763,7 +763,7 @@ module Mongoid # :nodoc:
       #
       # @since 2.0.0.rc.1
       def determine_cyclic_inverse
-        underscored = class_name.underscore
+        underscored = class_name.demodulize.underscore
         klass.relations.each_pair do |key, meta|
           if key =~ /#{underscored.singularize}|#{underscored.pluralize}/ &&
             meta.relation != relation
@@ -813,6 +813,7 @@ module Mongoid # :nodoc:
         default = klass.relations[inverse_klass.name.underscore]
         return default.name if default
         klass.relations.each_pair do |key, meta|
+          next if meta.versioned? || meta.name == name
           if meta.class_name == inverse_class_name
             return key.to_sym
           end

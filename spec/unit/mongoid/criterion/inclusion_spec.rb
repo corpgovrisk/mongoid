@@ -79,15 +79,32 @@ describe Mongoid::Criterion::Inclusion do
 
   describe "#any_in" do
 
-    let(:criteria) do
-      base.any_in(:title => ["title1", "title2"], :text => ["test"])
+    context "when providing multiple fields" do
+
+      let(:criteria) do
+        base.any_in(:title => ["title1", "title2"], :text => ["test"])
+      end
+
+      it "aliases to #in" do
+        criteria.selector.should eq({
+          :title => { "$in" => ["title1", "title2"] }, :text => { "$in" => ["test"] }
+        })
+      end
     end
 
-    it "aliases to #in" do
-      criteria.selector.should ==
-        {
-          :title => { "$in" => ["title1", "title2"] }, :text => { "$in" => ["test"] }
-        }
+    context "when chaining on the same field" do
+
+      let(:criteria) do
+        base.
+          any_in(:title => [ "test", "test2" ]).
+          any_in(:title => [ "test2", "test3" ])
+      end
+
+      it "intersects the selector" do
+        criteria.selector.should eq({
+          :title => { "$in" => [ "test2" ] }
+        })
+      end
     end
   end
 
@@ -558,13 +575,29 @@ describe Mongoid::Criterion::Inclusion do
 
       context "with simple hash keys" do
 
-        let(:criteria) do
-          base.where(:title => "Title", :text => "Text")
+        context "when no existing selector exists" do
+
+          let(:criteria) do
+            base.where(:title => "Title", :text => "Text")
+          end
+
+          it "adds the clause to the selector" do
+            criteria.selector.should ==
+              { :title => "Title", :text => "Text" }
+          end
         end
 
-        it "adds the clause to the selector" do
-          criteria.selector.should ==
-            { :title => "Title", :text => "Text" }
+        context "when an existing id selector exists" do
+
+          let(:criteria) do
+            base.where(:_id.in => [ 1, 2, 3 ]).where(:_id => 4)
+          end
+
+          it "adds the clause to the selector" do
+            criteria.selector.should eq(
+              { "$and" => [{ :_id => { "$in" => [ 1, 2, 3 ] } }, { :_id => 4 }] }
+            )
+          end
         end
 
         context "when field defined as an array" do
@@ -606,20 +639,44 @@ describe Mongoid::Criterion::Inclusion do
 
       context "when merging a simple value into a complex one" do
 
-        let(:id) do
-          BSON::ObjectId.new
+        context "when merging normal fields" do
+
+          let(:id) do
+            BSON::ObjectId.new
+          end
+
+          let(:criteria) do
+            base.any_in(:field => [ "test" ])
+          end
+
+          let(:merged) do
+            criteria.where(:field => "testing")
+          end
+
+          it "overwrites the initial value" do
+            merged.selector.should eq({ :field => "testing" })
+          end
         end
 
-        let(:criteria) do
-          base.any_in(:_id => [ id ])
-        end
+        context "when merging id fields" do
 
-        let(:merged) do
-          criteria.where(:_id => id)
-        end
+          let(:id) do
+            BSON::ObjectId.new
+          end
 
-        it "overwrites the initial value" do
-          merged.selector.should eq({ :_id => id })
+          let(:criteria) do
+            base.any_in(:_id => [ id ])
+          end
+
+          let(:merged) do
+            criteria.where(:_id => id)
+          end
+
+          it "converts to an $and criteria" do
+            merged.selector.should eq(
+              { "$and" => [{ :_id => { "$in" => [ id ] }}, { :_id => id }] }
+            )
+          end
         end
       end
 

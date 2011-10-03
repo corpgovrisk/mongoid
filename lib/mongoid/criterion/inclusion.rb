@@ -20,6 +20,27 @@ module Mongoid #:nodoc:
       end
       alias :all_in :all
 
+      # Adds a criterion to the criteria that specifies multiple expressions
+      # that *all* must match. This uses MongoDB's $and operator under the
+      # covers.
+      #
+      # @example Match all provided expressions.
+      #   criteria.all_of(:name => value, :age.gt => 18)
+      #
+      # @param [ Array<Hash> ] Multiple hash expressions.
+      #
+      # @return [ Criteria ] The criteria object.
+      #
+      # @since 2.3.0
+      def all_of(*args)
+        clone.tap do |crit|
+          criterion = @selector["$and"] || []
+          converted = BSON::ObjectId.convert(klass, args.flatten)
+          expanded = converted.collect { |hash| hash.expand_complex_criteria }
+          crit.selector["$and"] = criterion.concat(expanded)
+        end
+      end
+
       # Adds a criterion to the +Criteria+ that specifies values where any can
       # be matched in order to return results. This is similar to an SQL "IN"
       # clause. The MongoDB conditional operator that will be used is "$in".
@@ -216,14 +237,24 @@ module Mongoid #:nodoc:
               BSON::ObjectId.convert(klass, selector || {}, false).expand_complex_criteria
           end
 
+          # @todo: Durran: 3.0.0: refactor the merging into separate strategies
+          # to clean this funkiness up.
           selector.each_pair do |key, value|
-            if crit.selector.has_key?(key) &&
-              crit.selector[key].respond_to?(:merge) &&
-              value.respond_to?(:merge)
-              crit.selector[key] =
-                crit.selector[key].merge(value) do |key, old, new|
-                  key == '$in' ? old & new : new
+            if crit.selector.has_key?(key)
+              if key.to_s =~ /^(|_)id$/
+                if crit.selector.has_key?("$and")
+                  crit.selector["$and"] << { key => value }
+                else
+                  crit.selector["$and"] = [{ key => crit.selector.delete(key) }, { key => value }]
                 end
+              elsif crit.selector[key].respond_to?(:merge) && value.respond_to?(:merge)
+                crit.selector[key] =
+                  crit.selector[key].merge(value) do |key, old, new|
+                    key == '$in' ? old & new : new
+                  end
+              else
+                crit.selector[key] = value
+              end
             else
               crit.selector[key] = value
             end
@@ -266,7 +297,7 @@ module Mongoid #:nodoc:
       #
       # @since 2.2.1
       def from_map_or_db(criteria)
-        IdentityMap.get(klass, criteria.selector[:_id]) || criteria.one
+        IdentityMap.get(klass, criteria.extract_id) || criteria.one
       end
     end
   end

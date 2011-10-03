@@ -8,7 +8,7 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
   before do
     [
-      Person, Preference, Event, Tag,
+      Person, Preference, Event, Tag, House,
       UserAccount, Agent, Account, Business, User,
       Artwork, Exhibition, Exhibitor
     ].map(&:delete_all)
@@ -732,6 +732,28 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
     describe "##{method}" do
 
+      context "when providing scoped mass assignment" do
+
+        let(:person) do
+          Person.new
+        end
+
+        let(:house) do
+          person.houses.send(
+            method,
+            { :name => "Dream", :model => "Home" }, :as => :admin
+          )
+        end
+
+        it "sets the attributes for the provided role" do
+          house.name.should eq("Dream")
+        end
+
+        it "does not set the attributes for other roles" do
+          house.model.should be_nil
+        end
+      end
+
       context "when the relation is not polymorphic" do
 
         context "when the parent is a new record" do
@@ -995,6 +1017,28 @@ describe Mongoid::Relations::Referenced::ManyToMany do
   [ :create, :create! ].each do |method|
 
     describe "##{method}" do
+
+      context "when providing scoped mass assignment" do
+
+        let(:person) do
+          Person.create(:ssn => "123-12-1211")
+        end
+
+        let(:house) do
+          person.houses.send(
+            method,
+            { :name => "Dream", :model => "Home" }, :as => :admin
+          )
+        end
+
+        it "sets the attributes for the provided role" do
+          house.name.should eq("Dream")
+        end
+
+        it "does not set the attributes for other roles" do
+          house.model.should be_nil
+        end
+      end
 
       context "when the relation is not polymorphic" do
 
@@ -1410,6 +1454,14 @@ describe Mongoid::Relations::Referenced::ManyToMany do
         person.preferences.create(:name => "OMG I has relations")
       end
 
+      let!(:unrelated_pref) do
+        Preference.create(:name => "orphan annie")
+      end
+
+      let!(:unrelated_pref_two) do
+        Preference.create(:name => "orphan two")
+      end
+
       context "when providing an id" do
 
         context "when the id matches" do
@@ -1420,6 +1472,19 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
           it "returns the matching document" do
             preference.should == preference_one
+          end
+        end
+
+        context "when the id matches an unreferenced document" do
+
+          let(:preference) do
+            person.preferences.find(unrelated_pref.id)
+          end
+
+          it "raises an error" do
+            expect {
+              preference
+            }.to raise_error(Mongoid::Errors::DocumentNotFound)
           end
         end
 
@@ -1469,6 +1534,21 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
           it "returns the matching documents" do
             preferences.should == [ preference_one, preference_two ]
+          end
+        end
+
+        context "when the ids matche unreferenced documents" do
+
+          let(:preferences) do
+            person.preferences.find(
+              [ unrelated_pref.id, unrelated_pref_two.id ]
+            )
+          end
+
+          it "raises an error" do
+            expect {
+              preferences
+            }.to raise_error(Mongoid::Errors::DocumentNotFound)
           end
         end
 
@@ -1706,6 +1786,10 @@ describe Mongoid::Relations::Referenced::ManyToMany do
       person.preferences.create(:name => "Second", :value => "Testing")
     end
 
+    let!(:unrelated) do
+      Preference.create(:name => "Third")
+    end
+
     context "when providing a single criteria" do
 
       let(:preferences) do
@@ -1714,6 +1798,17 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
       it "applies the criteria to the documents" do
         preferences.should == [ preference_one ]
+      end
+    end
+
+    context "when providing a criteria on id" do
+
+      let(:preferences) do
+        person.preferences.where(:_id => unrelated.id)
+      end
+
+      it "does not return unrelated documents" do
+        preferences.should be_empty
       end
     end
 

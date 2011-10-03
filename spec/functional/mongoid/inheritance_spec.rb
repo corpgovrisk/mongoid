@@ -19,7 +19,7 @@ describe Mongoid::Document do
     end
 
     let(:attributes) do
-      collection.find({ :name => "Test"}, {}).next_document
+      collection.find({ :name => "Test"}, {}).first
     end
 
     it "persists the versions" do
@@ -46,7 +46,7 @@ describe Mongoid::Document do
     end
 
     let(:attributes) do
-      collection.find({ :name => "Testy"}, {}).next_document
+      collection.find({ :name => "Testy"}, {}).first
     end
 
     before do
@@ -216,10 +216,10 @@ describe Mongoid::Document do
     end
 
     it "should allow STI from the build call" do
-      car = @container.vehicles.build({},Car)
+      car = @container.vehicles.build({}, {}, Car)
       car.save
 
-      truck = @container.vehicles.build({},Truck)
+      truck = @container.vehicles.build({}, {}, Truck)
       truck.save
 
       @container.vehicles.map(&:class).should == [Car,Truck]
@@ -232,8 +232,8 @@ describe Mongoid::Document do
     end
 
     it "should allow STI from the build call" do
-      @container.vehicles.create({},Car)
-      @container.vehicles.create({},Truck)
+      @container.vehicles.create({}, {}, Car)
+      @container.vehicles.create({}, {}, Truck)
       @container.vehicles.map(&:class).should == [Car,Truck]
     end
 

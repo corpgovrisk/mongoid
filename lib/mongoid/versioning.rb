@@ -15,6 +15,7 @@ module Mongoid #:nodoc:
         :class_name => self.name,
         :validate => false,
         :cyclic => true,
+        :inverse_of => nil,
         :versioned => true
 
       set_callback :save, :before, :revise, :if => :revisable?
@@ -47,8 +48,10 @@ module Mongoid #:nodoc:
     def revise
       previous = previous_revision
       if previous && versioned_attributes_changed?
-        new_version = versions.build(previous.versioned_attributes)
-        versions.shift if version_max.present? && versions.length > version_max
+        versions.build(previous.versioned_attributes).attributes.delete("_id")
+        if version_max.present? && versions.length > version_max
+          versions.shift
+        end
         self.version = (version || 1 ) + 1
       end
     end

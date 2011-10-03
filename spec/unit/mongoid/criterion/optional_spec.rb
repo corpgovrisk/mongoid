@@ -224,12 +224,11 @@ describe Mongoid::Criterion::Optional do
     context "with not using object ids" do
 
       before do
-        @previous_id_type = Person.fields["_id"].type
         Person.identity :type => String
       end
 
       after do
-        Person.identity :type => @previous_id_type
+        Person.identity :type => BSON::ObjectId
       end
 
       context "when passing a single id" do
@@ -245,7 +244,7 @@ describe Mongoid::Criterion::Optional do
           end
 
           it "adds the _id query to the selector" do
-            criteria.selector.should == { :_id => id }
+            criteria.selector.should eq({ :_id => id })
           end
 
           it "returns a copy" do
@@ -264,7 +263,7 @@ describe Mongoid::Criterion::Optional do
           end
 
           it "adds the _id query to the selector" do
-            criteria.selector.should == { :_id => id }
+            criteria.selector.should eq({ :_id => id })
           end
 
           it "returns a copy" do
@@ -296,7 +295,7 @@ describe Mongoid::Criterion::Optional do
         end
 
         it "adds the _id query to the selector" do
-          base.for_ids(ids).selector.should == { :_id => ids.first }
+          base.for_ids(ids).selector.should eq({ :_id => ids.first })
         end
       end
     end
@@ -304,12 +303,7 @@ describe Mongoid::Criterion::Optional do
     context "when using object ids" do
 
       before do
-        @previous_id_type = Person.fields["_id"].type
         Person.identity :type => BSON::ObjectId
-      end
-
-      after do
-        Person.identity :type => @previous_id_type
       end
 
       context "when passing a single id" do
@@ -325,7 +319,7 @@ describe Mongoid::Criterion::Optional do
           end
 
           it "adds the _id query to the selector convert like BSON::ObjectId" do
-            criteria.selector.should == { :_id => BSON::ObjectId(id) }
+            criteria.selector.should eq({ :_id => BSON::ObjectId(id) })
           end
 
           it "returns a copy" do
@@ -344,7 +338,7 @@ describe Mongoid::Criterion::Optional do
           end
 
           it "adds the _id query to the selector without cast" do
-            criteria.selector.should == { :_id => id }
+            criteria.selector.should eq({ :_id => id })
           end
 
           it "returns a copy" do
