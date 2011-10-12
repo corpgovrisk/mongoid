@@ -89,7 +89,7 @@ namespace :db do
     end
 
     def convert_ids(obj)
-      if obj.is_a?(String) && obj =~ /^[a-f0-9]{24}$/
+      if obj.is_a?(String) && BSON::ObjectId.legal?(obj)
         BSON::ObjectId(obj)
       elsif obj.is_a?(Array)
         obj.map do |v|

@@ -113,7 +113,7 @@ module Mongoid # :nodoc:
       #
       # @since 2.0.0.rc.1
       def class_name
-        @class_name ||= (self[:class_name] || classify)
+        @class_name ||= (self[:class_name] || classify).sub(/^::/,"")
       end
 
       # Get the foreign key contraint for the metadata.
@@ -202,10 +202,7 @@ module Mongoid # :nodoc:
       #
       # @since 2.2.0
       def eager_load(criteria)
-        relation.eager_load(
-          self,
-          criteria.clone.tap { |crit| crit.inclusions.clear }
-        )
+        relation.eager_load(self, criteria.clone)
       end
 
       # Will determine if the relation is an embedded one or not. Currently

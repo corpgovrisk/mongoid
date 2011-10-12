@@ -1,18 +1,59 @@
 # Overview
 
-For instructions on upgrading to newer versions, visit [mongoid.org](http://mongoid.org/docs/upgrading.html).
+For instructions on upgrading to newer versions, visit
+[mongoid.org](http://mongoid.org/docs/upgrading.html).
 
-## 2.4.0
+## 2.4.0 \[ In Development \] \[ Branch: master \]
 
 * Ranges can now be passed to #where criteria to create a $gte/$lte query under the
   covers. `Person.where(dob: start_date...end_date)`
+
+* \#1333 Fixed errors with custom types that exist in namespaces. (Peter Gumeson)
+
+## 2.3.1 \[ In Development \] \[ Branch: 2.3.0-stable \]
+
+### Resolved Issues
+
+* \#1321 HABTM no longer allows duplicate entries or keys, instead of the previous
+  inconsistencies.
+
+* \#1320 Fixed errors in perf benchmark.
+
+* \#1316 Added a separate Rake task "db:mongoid:drop" so Mongoid and AR can coexist.
+  (Daniel Vartanov)
+
+* \#1311 Fix issue with custom field serialization inheriting from hash.
+
+* \#1295 Fixed having multiple includes only execute the eager loading of the first.
+
+* \#1287 Fixed max versions limitation with versioning.
+
+* \#1277 attribute_will_change! properly flags the attribute even if no change occured.
+
+* \#1061 Raise `Mongoid::Errors::InvalidTime` when time serialization fails.
+
+* \#1002 Check for legal bson ids when attempting conversion.
+
+* \#920 Allow relations to be named target.
+
+* \#905 Return normalized class name in metadata if string was defined with a
+  prefixed ::.
+
+* \#861 accepts_nested_attributes_for is no longer needed to set embedded documents
+  via a hash or array of hashes directly.
+
+* \#857 Fixed cascading of dependent relations when base document is paranoid.
+
+* \#768 Fixed class_attribute definitions module wide.
+
+* \#408 Embedded documents can now be soft deleted via `Mongoid::Paranoia`.
 
 ## 2.3.0
 
 ### New Features
 
 * Mongoid now supports basic localized fields, storing them under the covers as a
-  hash of locale => value pairs. `field :name, localized: true`
+  hash of locale => value pairs. `field :name, localize: true`
 
 * \#1275 For applications that default safe mode to true, you can now tell a
   single operation to persist without safe mode via #unsafely:
@@ -92,6 +133,8 @@ For instructions on upgrading to newer versions, visit [mongoid.org](http://mong
 
 * Deleting versions created with `Mongoid::Versioning` no longer fires off
   dependent cascading on relations.
+
+## 2.2.3 \[ In Development \] \[ Branch: 2.2.0-stable \]
 
 ## 2.2.2
 

@@ -24,18 +24,6 @@ module Mongoid #:nodoc:
       self.cyclic = true
     end
 
-    # Get the maximum number of versions to store.
-    #
-    # @note Refactored from using delegate for class load performance.
-    #
-    # @example Get the max versions.
-    #   model.version_max
-    #
-    # @return [ Integer ] The max number of versions.
-    def version_max
-      self.class.version_max
-    end
-
     # Create a new version of the +Document+. This will load the previous
     # document from the database and set it as the next version before saving
     # the current document. It then increments the version number. If a #max_versions
@@ -50,7 +38,7 @@ module Mongoid #:nodoc:
       if previous && versioned_attributes_changed?
         versions.build(previous.versioned_attributes).attributes.delete("_id")
         if version_max.present? && versions.length > version_max
-          versions.shift
+          versions.delete(versions.first)
         end
         self.version = (version || 1 ) + 1
       end
