@@ -3,7 +3,8 @@ require "spec_helper"
 describe Mongoid::Relations::Referenced::In do
 
   before do
-    [ Person, Game, Post, Bar, Agent, Comment, Movie, Account, User ].map(&:delete_all)
+    [ Person, Game, Post, Bar, Agent,
+      Comment, Movie, Account, User, Book, Series ].map(&:delete_all)
   end
 
   let(:person) do
@@ -847,6 +848,51 @@ describe Mongoid::Relations::Referenced::In do
 
       it "sets a new document instance" do
         reloaded.should_not equal(person_one)
+      end
+    end
+  end
+
+  context "when the parent and child are persisted" do
+
+    context "when the identity map is enabled" do
+
+      before do
+        Mongoid.identity_map_enabled = true
+      end
+
+      after do
+        Mongoid.identity_map_enabled = false
+      end
+
+      let(:series) do
+        Series.create
+      end
+
+      let!(:book_one) do
+        series.books.create
+      end
+
+      let!(:book_two) do
+        series.books.create
+      end
+
+      let(:id) do
+        Book.first.id
+      end
+
+      context "when asking for the inverse multiple times" do
+
+        before do
+          Book.find(id).series.books.to_a
+        end
+
+        it "does not append and save duplicate docs" do
+          Book.find(id).series.books.to_a.length.should eq(2)
+        end
+
+        it "returns the same documents from the map" do
+          Book.find(id).should equal(Book.find(id))
+        end
       end
     end
   end

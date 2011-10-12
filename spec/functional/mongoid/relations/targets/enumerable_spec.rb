@@ -127,16 +127,19 @@ describe Mongoid::Relations::Targets::Enumerable do
       described_class.new([])
     end
 
-    let!(:added) do
-      enumerable << post
-    end
+    context "when the relation is empty" do
 
-    it "adds the document to the added target" do
-      enumerable.added.should eq([ post ])
-    end
+      let!(:added) do
+        enumerable << post
+      end
 
-    it "returns the added documents" do
-      added.should eq([ post ])
+      it "adds the document to the added target" do
+        enumerable.added.should eq([ post ])
+      end
+
+      it "returns the added documents" do
+        added.should eq([ post ])
+      end
     end
   end
 
