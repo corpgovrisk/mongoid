@@ -5,12 +5,34 @@ For instructions on upgrading to newer versions, visit
 
 ## 2.4.0 \[ In Development \] \[ Branch: master \]
 
+### New Features
+
 * Ranges can now be passed to #where criteria to create a $gte/$lte query under the
   covers. `Person.where(dob: start_date...end_date)`
 
+### Resolved Issues
+
 * \#1333 Fixed errors with custom types that exist in namespaces. (Peter Gumeson)
 
-## 2.3.2 \[ In Development \] \[ Branch: 2.3.0-stable \]
+## 2.3.3 \[ In Development \] \[ Branch: 2.3.0-stable \]
+
+### Resolved Issues
+
+* \#1364 Fixed reloading of documents with non bson object id ids.
+
+* \#1360 Fixed performance of Mongoid's observer instantiation by hooking into
+  Active Support's load hooks, a la AR.
+
+* \#1358 Fixed type error on many to many synchronization when inverse_of is
+  set to nil.
+
+* \#1356 $in criteria can now be chained to non-complex criteria on the same
+  key without error.
+
+* \#1350, \#1351 Fixed errors in the string conversions of double quotes and
+  tilde when paramterizing keys.
+
+## 2.3.2
 
 ### Resolved Issues
 
