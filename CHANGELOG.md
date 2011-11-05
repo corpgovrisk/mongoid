@@ -14,9 +14,20 @@ For instructions on upgrading to newer versions, visit
 
 * \#1333 Fixed errors with custom types that exist in namespaces. (Peter Gumeson)
 
-## 2.3.3 \[ In Development \] \[ Branch: 2.3.0-stable \]
+## 2.3.4 \[ In Development \] \[ Branch: 2.3.0-stable \]
+
+## 2.3.3
 
 ### Resolved Issues
+
+* \#1386 Lowered mongo/bson dependency to 1.3
+
+* \#1377 Fix aggregation functions to properly handle nil or indefined values.
+  (Maxime Garcia)
+
+* \#1373 Warn if a scope overrides another scope.
+
+* \#1372 Never persist when binding inside of a read attribute for validation.
 
 * \#1364 Fixed reloading of documents with non bson object id ids.
 
@@ -31,6 +42,9 @@ For instructions on upgrading to newer versions, visit
 
 * \#1350, \#1351 Fixed errors in the string conversions of double quotes and
   tilde when paramterizing keys.
+
+* \#1349 Mongoid documents should not blow up when including Enumerable.
+  (Jonas Nicklas)
 
 ## 2.3.2
 
@@ -196,6 +210,27 @@ For instructions on upgrading to newer versions, visit
 
 * Deleting versions created with `Mongoid::Versioning` no longer fires off
   dependent cascading on relations.
+
+## 2.2.4
+
+* \#1377 Fix aggregation functions to properly handle nil or indefined values.
+  (Maxime Garcia)
+
+* \#1373 Warn if a scope overrides another scope.
+
+* \#1372 Never persist when binding inside of a read attribute for validation.
+
+* \#1358 Fixed type error on many to many synchronization when inverse_of is
+  set to nil.
+
+* \#1356 $in criteria can now be chained to non-complex criteria on the same
+  key without error.
+
+* \#1350, \#1351 Fixed errors in the string conversions of double quotes and
+  tilde when paramterizing keys.
+
+* \#1349 Mongoid documents should not blow up when including Enumerable.
+  (Jonas Nicklas)
 
 ## 2.2.3
 
