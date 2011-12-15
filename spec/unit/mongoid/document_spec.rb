@@ -239,6 +239,49 @@ describe Mongoid::Document do
     end
   end
 
+  describe "#cache_key" do
+
+    let(:person) do
+      Person.new
+    end
+
+    context "when the document is new" do
+
+      it "should have a new key name" do
+        person.cache_key.should eq("people/new")
+      end
+    end
+
+    context "when persisted" do
+
+      before do
+        person.save
+      end
+
+      context "with updated_at" do
+
+        let!(:updated_at) do
+          person.updated_at.utc.to_s(:number)
+        end
+
+        it "should have the id and updated_at key name" do
+          person.cache_key.should eq("people/#{person.id}-#{updated_at}")
+        end
+      end
+
+      context "without updated_at" do
+
+        before do
+          person.updated_at = nil
+        end
+
+        it "should have the id key name" do
+          person.cache_key.should eq("people/#{person.id}")
+        end
+      end
+    end
+  end
+
   describe "#hash" do
 
     let(:person) do
@@ -490,6 +533,19 @@ describe Mongoid::Document do
 
       let(:person) do
         Person.instantiate("_id" => BSON::ObjectId.new)
+      end
+
+      it "returns the id in an array" do
+        person.to_key.should == [ person.id ]
+      end
+    end
+
+    context "when the document is destroyed" do
+
+      let(:person) do
+        Person.instantiate("_id" => BSON::ObjectId.new).tap do |peep|
+          peep.destroyed = true
+        end
       end
 
       it "returns the id in an array" do

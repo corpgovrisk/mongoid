@@ -10,11 +10,109 @@ For instructions on upgrading to newer versions, visit
 * Ranges can now be passed to #where criteria to create a $gte/$lte query under the
   covers. `Person.where(dob: start_date...end_date)`
 
+* \#1496 Mongoid now casts strings back to symbols for symbol fields that
+  get saved as strings by another application.
+
+* \#1454, \#900 Associations now have an `after_build` callback that gets
+  executed after `.build` or `build_` methods are called.
+  (Jeffrey Jones, Ryan Townsend)
+
+* \#1451 Ranges can now be any range value, not just numbers. (aupajo)
+
+* \#1448 Localization is now used when sorting. (Hans Hasselberg)
+
+* \#1422 Mongoid raises an error at yaml load if no environment is found.
+  (Tom Stuart)
+
+* \#1413 $not support added to criteria symbol methods. (Marc Weil)
+
+* \#1403 Added configuration option `scope_overwrite_exception` which defaults to
+  false for raising an error when defining a named scope with the same name of
+  an existing method. (Christoph Grabo)
+
+* \#1388 `model.add_to_set` now supports adding multiple values and performs an
+  $addToSet with $each under the covers. (Christian Felder)
+
+* \#1387 Added `Model#cache_key` for use in Rails caching. (Seivan Heidari)
+
+* \#1380 Calling Model.find(id) will now properly convert to and from any type
+  based on the type of the _id field.
+
+* \#1363 Added fallbacks and default support to localized fields, and added
+  ability to get and set all translations at once.
+
+* \#1362 Aliased fields now properly typecast in criteria.
+
 ### Resolved Issues
+
+* \#1483 Sending module includes at runtime which add new fields to a parent
+  document, also have the fields added to subclasses.
+
+* \#1482 Applying new sorting options does not merge into previously
+  chained criteria. (Gerad Suyderhoud)
+
+* \#1481 Fix invalid query when accessing many-to-many relations before
+  defaults are set.
+
+* \#1480 Mongoid's internal serialized field types renamespaced to Internal in order
+  to not conflict with ruby core classes in custom serializable types.
+
+* \#1479 Don't duplicate ids on many-to-many when using create or create!
+
+* \#1469 When extract_id returns nil, get the document out of the identity map
+  by the criteria selector.
+
+* \#1467 Defining a field named metadata now properly raises an invalid field
+  error.
+
+* \#1463 Batch insert consumers are now scoped to collection to avoid persistence
+  of documents to other collections in callbacks going to the wrong place.
+
+* \#1461 Fixed serialization of foreign key fields in complex criteria not to
+  escape the entire hash.
+
+* \#1458 Versioning no longer skips fields that have been protected from mass
+  assignment.
+
+* \#1455, \#1456 Calling destroy on any document now temporarily marks it as
+  flagged for destroy until the operation is complete. (Nader Akhnoukh)
+
+* \#1453 `Model#to_key` should return a value when the document is destroyed.
+
+* \#1449 New documents no longer get persisted when replaced on a has one as
+  a side effect. (jasonsydes)
+
+* \#1439 embedded? should return true when relation defined as cyclic.
+
+* \#1426 Frozen documents can now be cloned. (aagrawal2001)
+
+* \#1382 Raise proper error when creating indexes via rake task if index
+  definition is incorrect. (Mathieu Ravaux)
+
+* \#1381, \#1371 The identity map now functions properly with inherited
+  documents. (Paul Canavese)
+
+* \#1366 Array and hash values now get deep copied for dirty tracking.
+
+* \#1359 Provide ability to not have default scope applied to all named
+  scopes via using lambdas.
 
 * \#1333 Fixed errors with custom types that exist in namespaces. (Peter Gumeson)
 
-## 2.3.4 \[ In Development \] \[ Branch: 2.3.0-stable \]
+## 2.3.4
+
+* \#1445 Prevent duplicate documents in the loaded array on the target
+  enumerable for relational associations.
+
+* \#1442 When using create_ methods for has one relations, the appropriate
+  destructive methods now get called when replacing an existing document.
+
+* \#1431 Enumerable context should add to the loaded array post yield, so
+  that methods like #any? that short circuit based on the value of the block
+  dont falsely have extra documents.
+
+* \#1418 Documents being loaded from the database for revision purposes
+  no longer get placed in the identity map.
 
 * \#1399 Allow conversion of strings to integers in foreign keys where the
   id is defined as an int.
@@ -25,6 +123,29 @@ For instructions on upgrading to newer versions, visit
 * \#1394 Fix exists? to work when count is greater than 1. (Nick Hoffman)
 
 * \#1392 Return 0 on aggregation functions where field is nonexistant.
+
+* \#1391 Uniqueness validation now works properly on embedded documents that are
+  using primary key definitions.
+
+* \#1390 When _type field is lower case class camelize before constantizing.
+
+* \#1383 Fix cast on read for serializable fields that are subclassed.
+
+* \#1357 Delayed atomic sets from update_attributes on embedded documents
+  multiple levels deep now properly persist.
+
+* \#1326 Ensure base document on HABTM gets its keys saved after saving a newly
+  build child document.
+
+* \#1301 Don't overwrite base metadata on embedded in relations if already set.
+
+* \#1221 HABTM with inverse nil is allowed again on embedded documents.
+
+* \#1208 Don't auto-persist child documents via the setter when setting from
+  an embedded_in.
+
+* \#791 Root document updates its timestamps when only embedded documents have
+  changed.
 
 ## 2.3.3
 

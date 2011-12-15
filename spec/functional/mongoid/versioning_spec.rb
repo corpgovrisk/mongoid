@@ -80,7 +80,9 @@ describe Mongoid::Versioning do
   describe "#versions" do
 
     let(:page) do
-      WikiPage.create(:title => "1")
+      WikiPage.create(:title => "1") do |wiki|
+        wiki.author = "woodchuck"
+      end
     end
 
     context "when saving the document " do
@@ -109,6 +111,29 @@ describe Mongoid::Versioning do
 
         it "does not version the updated_at timestamp" do
           version.updated_at.should be_nil
+        end
+
+        it "does not embed versions within versions" do
+          version.versions.should be_empty
+        end
+
+        it "versions protected fields" do
+          version.author.should eq("woodchuck")
+        end
+
+        context "when saving multiple times" do
+
+          before do
+            page.update_attribute(:title, "3")
+          end
+
+          it "does not embed versions within versions" do
+            version.versions.should be_empty
+          end
+
+          it "does not embed versions multiple levels deep" do
+            page.versions.last.versions.should be_empty
+          end
         end
       end
 
@@ -254,6 +279,40 @@ describe Mongoid::Versioning do
 
     it "allows the document to be added" do
       page.child_pages.should eq([ child ])
+    end
+  end
+
+  context "when the identity map is enabled" do
+
+    before do
+      Mongoid.identity_map_enabled = true
+    end
+
+    after do
+      Mongoid.identity_map_enabled = false
+    end
+
+    context "when updating a loaded attribute" do
+
+      let!(:page) do
+        WikiPage.create(:title => "first")
+      end
+
+      let!(:loaded) do
+        WikiPage.find(page.id)
+      end
+
+      before do
+        loaded.update_attribute(:title, "revised")
+      end
+
+      let(:reloaded) do
+        WikiPage.find(page.id)
+      end
+
+      it "returns the revised im memory document" do
+        reloaded.title.should eq("revised")
+      end
     end
   end
 end

@@ -913,6 +913,17 @@ describe Mongoid::Relations::Referenced::ManyToMany do
           it "adds the correct number of documents" do
             person.preferences.size.should == 1
           end
+
+          context "when saving the target" do
+
+            before do
+              preference.save
+            end
+
+            it "persists the parent keys" do
+              person.reload.preference_ids.should eq([ preference.id ])
+            end
+          end
         end
       end
     end
@@ -1191,6 +1202,14 @@ describe Mongoid::Relations::Referenced::ManyToMany do
 
           it "adds the document to the target" do
             person.preferences.count.should == 1
+          end
+
+          it "does not duplicate documents" do
+            person.reload.preferences.count.should eq(1)
+          end
+
+          it "does not duplicate ids" do
+            person.reload.preference_ids.count.should eq(1)
           end
         end
       end

@@ -66,6 +66,7 @@ module Mongoid #:nodoc:
           Factory.build(type || klass, attributes, options).tap do |doc|
             append(doc)
             yield(doc) if block_given?
+            doc.run_callbacks(:build) { doc }
           end
         end
         alias :new :build

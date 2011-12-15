@@ -25,7 +25,15 @@ module Mongoid #:nodoc:
       # @since 2.0.0
       def criteria(embedded = false, scoped = true)
         scope_stack.last || Criteria.new(self, embedded).tap do |crit|
-          return crit.fuse(default_scoping) if default_scoping && scoped
+          # @todo: Durran, Need to rewrite all the scoping code for 3.0.0 to
+          # avoid the lambda workaround.
+          if scoped
+            if default_scoping && !crit.unscopable?
+              return crit.fuse(default_scoping)
+            end
+          else
+            crit.unscopable = true
+          end
         end
       end
 
@@ -125,19 +133,23 @@ module Mongoid #:nodoc:
 
       protected
 
-      # Warns if overriding another scope or method.
+      # Warns or raises exception if overriding another scope or method.
       #
-      # @example Warn if name exists.
+      # @example Warn or raise error if name exists.
       #   Model.valid_scope_name?("test")
       #
       # @param [ String, Symbol ] name The name of the scope.
       def valid_scope_name?(name)
         if scopes[name] || respond_to?(name, true)
-          if Mongoid.logger
-            Mongoid.logger.warn(
-              "Creating scope :#{name}. " +
-              "Overwriting existing method #{self.name}.#{name}."
-            )
+          if Mongoid.scope_overwrite_exception
+            raise Errors::ScopeOverwrite.new(self.name,name)
+          else
+            if Mongoid.logger
+              Mongoid.logger.warn(
+                "Creating scope :#{name}. " +
+                "Overwriting existing method #{self.name}.#{name}."
+              )
+            end
           end
         end
       end

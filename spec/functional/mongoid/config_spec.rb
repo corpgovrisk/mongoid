@@ -95,6 +95,10 @@ describe Mongoid::Config do
         described_class.parameterize_keys.should == false
       end
 
+      it "sets scope_overwrite_exception" do
+        described_class.scope_overwrite_exception.should == false
+      end
+
       it "sets persist_in_safe_mode" do
         described_class.persist_in_safe_mode.should == false
       end
@@ -162,6 +166,10 @@ describe Mongoid::Config do
 
   describe ".load!" do
 
+    before(:all) do
+      Object.send(:remove_const, :Rails) if defined?(Rails)
+    end
+
     before do
       ENV["RACK_ENV"] = "test"
       described_class.load!(standard_config)
@@ -185,6 +193,10 @@ describe Mongoid::Config do
 
     it "sets parameterize keys" do
       described_class.parameterize_keys.should == false
+    end
+
+    it "sets scope_overwrite_exception" do
+      described_class.scope_overwrite_exception.should == false
     end
 
     it "sets persist_in_safe_mode" do
@@ -303,12 +315,12 @@ describe Mongoid::Config do
 
     context "when no collection name is provided" do
 
-      let!(:collections) do
+      before do
         Mongoid.purge!
       end
 
       it "purges the post collection" do
-        Post.collection.count.should eq(0)
+        Mongoid.master.collection("posts").count.should eq(0)
       end
     end
   end
@@ -344,6 +356,13 @@ describe Mongoid::Config do
 
       it "defaults to true" do
         described_class.parameterize_keys.should be_true
+      end
+    end
+
+    describe ".scope_overwrite_exception" do
+
+      it "defaults to false" do
+        described_class.scope_overwrite_exception.should be_false
       end
     end
 

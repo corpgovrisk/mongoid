@@ -1864,6 +1864,40 @@ describe Mongoid::Relations::Embedded::Many do
 
   context "when deeply embedding documents" do
 
+    context "when updating the bottom level" do
+
+      let!(:person) do
+        Person.create(:ssn => "234-23-2345")
+      end
+
+      let!(:address) do
+        person.addresses.create(:street => "Joachimstr")
+      end
+
+      let!(:location) do
+        address.locations.create(:name => "work")
+      end
+
+      context "when updating with a hash" do
+
+        before do
+          address.update_attributes(:locations => [{ :name => "home" }])
+        end
+
+        it "updates the attributes" do
+          address.locations.first.name.should eq("home")
+        end
+
+        it "overwrites the existing documents" do
+          address.locations.count.should eq(1)
+        end
+
+        it "persists the changes" do
+          address.reload.locations.count.should eq(1)
+        end
+      end
+    end
+
     context "when building the tree through hashes" do
 
       let(:circus) do
@@ -1899,7 +1933,6 @@ describe Mongoid::Relations::Embedded::Many do
         it "uses custom writer methods" do
           animal.tag_list.should == tag_list
         end
-
       end
 
       context "when the hash uses symbolized keys" do
@@ -1919,9 +1952,7 @@ describe Mongoid::Relations::Embedded::Many do
         it "uses custom writer methods" do
           animal.tag_list.should == tag_list
         end
-
       end
-
     end
 
     context "when building the tree through pushes" do
@@ -2104,9 +2135,9 @@ describe Mongoid::Relations::Embedded::Many do
         end
 
         before do
-          person.phone_numbers << nil 
+          person.phone_numbers << nil
           person.phone_numbers << home_phone
-          person.phone_numbers << office_phone 
+          person.phone_numbers << office_phone
           person.save!
         end
 
@@ -2124,8 +2155,8 @@ describe Mongoid::Relations::Embedded::Many do
 
         before do
           person.phone_numbers << home_phone
-          person.phone_numbers << nil 
-          person.phone_numbers << office_phone 
+          person.phone_numbers << nil
+          person.phone_numbers << office_phone
           person.save!
         end
 
@@ -2143,8 +2174,8 @@ describe Mongoid::Relations::Embedded::Many do
 
         before do
           person.phone_numbers << home_phone
-          person.phone_numbers << office_phone 
-          person.phone_numbers << nil 
+          person.phone_numbers << office_phone
+          person.phone_numbers << nil
           person.save!
         end
 

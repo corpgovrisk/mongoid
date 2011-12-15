@@ -4,7 +4,7 @@ describe Mongoid::Fields do
 
   describe ".defaults" do
 
-    it "returns a hash of all the default values" do
+    it "returns an array of all the default values" do
       Game.defaults.should eq([ "high_score", "score" ])
     end
   end
@@ -131,10 +131,22 @@ describe Mongoid::Fields do
 
     context "when the field name conflicts with mongoid's internals" do
 
-      it "raises an error" do
-        expect {
-          Person.field(:identifier)
-        }.to raise_error(Mongoid::Errors::InvalidField)
+      context "when the field is named identifier" do
+
+        it "raises an error" do
+          expect {
+            Person.field(:identifier)
+          }.to raise_error(Mongoid::Errors::InvalidField)
+        end
+      end
+
+      context "when the field is named metadata" do
+
+        it "raises an error" do
+          expect {
+            Person.field(:metadata)
+          }.to raise_error(Mongoid::Errors::InvalidField)
+        end
       end
     end
 
@@ -247,6 +259,17 @@ describe Mongoid::Fields do
         person.expects(:read_attribute).with("aliased")
         person.alias?
       end
+
+      context "when defining a criteria" do
+
+        let(:criteria) do
+          Person.where(:alias => "true")
+        end
+
+        it "properly serializes the aliased field" do
+          criteria.selector.should eq({ :alias => true })
+        end
+      end
     end
 
     context "custom options" do
@@ -263,18 +286,18 @@ describe Mongoid::Fields do
 
         it "calls the handler with the model" do
           handler.expects(:call).with do |model,_,_|
-            model.should eql Person
+            model.should eql User
           end
 
-          Person.field :custom, :option => true
+          User.field :custom, :option => true
         end
 
         it "calls the handler with the field" do
           handler.expects(:call).with do |_,field,_|
-            field.should eql Person.fields["custom"]
+            field.should eql User.fields["custom"]
           end
 
-          Person.field :custom, :option => true
+          User.field :custom, :option => true
         end
 
         it "calls the handler with the option value" do
@@ -282,7 +305,7 @@ describe Mongoid::Fields do
             value.should eql true
           end
 
-          Person.field :custom, :option => true
+          User.field :custom, :option => true
         end
       end
 
@@ -290,7 +313,7 @@ describe Mongoid::Fields do
 
         it "calls the handler" do
           handler.expects(:call)
-          Person.field :custom, :option => nil
+          User.field :custom, :option => nil
         end
       end
 
@@ -299,7 +322,7 @@ describe Mongoid::Fields do
         it "does not call the handler" do
           handler.expects(:call).never
 
-          Person.field :custom
+          User.field :custom
         end
       end
     end
@@ -448,6 +471,35 @@ describe Mongoid::Fields do
 
     it "keeps the options from the old field" do
       new_field.options[:label].should == "id"
+    end
+  end
+
+  context "when sending an include of another module at runtime" do
+
+    before do
+      Basic.send(:include, Ownable)
+    end
+
+    context "when the class is a parent" do
+
+      let(:fields) do
+        Basic.fields
+      end
+
+      it "resets the fields" do
+        fields.keys.should include("user_id")
+      end
+    end
+
+    context "when the class is a subclass" do
+
+      let(:fields) do
+        SubBasic.fields
+      end
+
+      it "resets the fields" do
+        fields.keys.should include("user_id")
+      end
     end
   end
 end

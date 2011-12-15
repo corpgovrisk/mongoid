@@ -58,6 +58,7 @@ module Mongoid # :nodoc:
             doc.identify
             append(doc)
             yield(doc) if block_given?
+            doc.run_callbacks(:build) { doc }
           end
         end
         alias :new :build
