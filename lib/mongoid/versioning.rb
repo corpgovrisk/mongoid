@@ -40,7 +40,16 @@ module Mongoid #:nodoc:
           previous.versioned_attributes, :without_protection => true
         ).attributes.delete("_id")
         if version_max.present? && versions.length > version_max
-          versions.delete(versions.first)
+          deleted = versions.first
+          if deleted.paranoid?
+            versions.delete_one(deleted)
+            collection.update(
+              atomic_selector,
+              { "$pull" => { "versions" => { "version" => deleted.version }}}
+            )
+          else
+            versions.delete(deleted)
+          end
         end
         self.version = (version || 1 ) + 1
       end
@@ -122,7 +131,7 @@ module Mongoid #:nodoc:
     # @since 2.0.0
     def previous_revision
       _loading_revision do
-        self.class.
+        self.class.unscoped.
           where(:_id => id).
           any_of({ :version => version }, { :version => nil }).first
       end

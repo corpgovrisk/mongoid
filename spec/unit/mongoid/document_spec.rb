@@ -2,7 +2,13 @@ require "spec_helper"
 
 describe Mongoid::Document do
 
-  let(:klass) { Person }
+  before(:all) do
+    Doctor
+  end
+
+  let(:klass) do
+    Person
+  end
 
   let(:person) do
     Person.new
@@ -329,6 +335,21 @@ describe Mongoid::Document do
 
     it "sets the attributes" do
       person.title.should == "Sir"
+    end
+
+    context "when accessing a relation from an overridden setter" do
+
+      let(:doctor) do
+        Doctor.new(:specialty => "surgery")
+      end
+
+      it "allows access to the relation" do
+        doctor.users.first.should be_a(User)
+      end
+
+      it "properly allows super calls" do
+        doctor.specialty.should eq("surgery")
+      end
     end
 
     context "when initialize callbacks are defined" do

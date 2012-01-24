@@ -2,6 +2,58 @@ require "spec_helper"
 
 describe Mongoid::Fields::Internal::ForeignKeys::Array do
 
+  describe "#add_atomic_changes" do
+
+    let(:field) do
+      described_class.instantiate(
+        :vals,
+        :metadata => Person.relations["preferences"],
+        :type => Array,
+        :default => [],
+        :identity => true
+      )
+    end
+
+    let(:person) do
+      Person.new
+    end
+
+    let(:preference_one) do
+      Preference.new
+    end
+
+    let(:preference_two) do
+      Preference.new
+    end
+
+    let(:preference_three) do
+      Preference.new
+    end
+
+    let(:mods) do
+      {}
+    end
+
+    before do
+      person.preferences.concat(preference_one, preference_three)
+    end
+
+    context "when adding and removing" do
+
+      before do
+        field.add_atomic_changes(
+          person, "preference_ids", "preference_ids", mods, [ preference_three.id ], [ preference_two.id ]
+        )
+      end
+
+      it "adds the current to the modifications" do
+        mods["preference_ids"].should eq(
+          [ preference_one.id, preference_three.id ]
+        )
+      end
+    end
+  end
+
   describe "#eval_default" do
 
     let(:default) do
@@ -24,6 +76,23 @@ describe Mongoid::Fields::Internal::ForeignKeys::Array do
 
     it "returns the correct value" do
       field.eval_default(nil).should == default
+    end
+  end
+
+  describe "#foreign_key?" do
+
+    let(:field) do
+      described_class.instantiate(
+        :vals,
+        :metadata => Person.relations["posts"],
+        :type => Array,
+        :default => [],
+        :identity => true
+      )
+    end
+
+    it "returns true" do
+      field.should be_foreign_key
     end
   end
 

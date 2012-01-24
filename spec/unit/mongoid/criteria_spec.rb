@@ -811,7 +811,7 @@ describe Mongoid::Criteria do
     context "chaining more than one scope" do
 
       let(:criteria) do
-        Person.accepted.old.knight
+        Person.accepted.knight
       end
 
       let(:chained) do
@@ -820,7 +820,7 @@ describe Mongoid::Criteria do
 
       it "returns the final merged criteria" do
         criteria.selector.should ==
-          { :title => "Sir", :terms => true, :age => { "$gt" => 50 } }
+          { :title => "Sir", :terms => true }
       end
 
       it "always returns a new criteria" do
@@ -923,7 +923,7 @@ describe Mongoid::Criteria do
 
   end
 
-  describe "#scoped" do
+  describe "#as_conditions" do
 
     context "when the options contain sort criteria" do
 
@@ -932,7 +932,9 @@ describe Mongoid::Criteria do
       end
 
       it "changes sort to order_by" do
-        criteria.scoped.should == { :where => { :title => "Sir" }, :order_by => [[:score, :asc]] }
+        criteria.as_conditions.should eq(
+          { :where => { :title => "Sir" }, :order_by => [[ :score, :asc ]] }
+        )
       end
     end
   end

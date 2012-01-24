@@ -1,6 +1,8 @@
 # encoding: utf-8
 require "mongoid/validations/associated"
+require "mongoid/validations/format"
 require "mongoid/validations/uniqueness"
+require "mongoid/validations/presence"
 
 module Mongoid #:nodoc:
 
@@ -43,11 +45,14 @@ module Mongoid #:nodoc:
     #
     # @since 2.0.0.rc.1
     def read_attribute_for_validation(attr)
-      if relations[attr.to_s]
+      attribute = attr.to_s
+      if relations[attribute]
         begin_validate
         relation = send(attr)
         exit_validate
         relation.do_or_do_not(:in_memory) || relation
+      elsif fields[attribute] && fields[attribute].localized?
+        attributes[attribute]
       else
         send(attr)
       end
@@ -84,6 +89,21 @@ module Mongoid #:nodoc:
 
     module ClassMethods #:nodoc:
 
+      # Validates whether or not a field matches a certain regular expression.
+      #
+      # @example
+      #   class Person
+      #     include Mongoid::Document
+      #     field :website
+      #
+      #     validates_format_of :website, :with => URI.regexp
+      #   end
+      #
+      # @param [ Array ] *args The arguments to pass to the validator.
+      def validates_format_of(*args)
+        validates_with(FormatValidator, _merge_attributes(args))
+      end
+
       # Validates whether or not an association is valid or not. Will correctly
       # handle has one and has many associations.
       #
@@ -117,6 +137,23 @@ module Mongoid #:nodoc:
       # @param [ Array ] *args The arguments to pass to the validator.
       def validates_uniqueness_of(*args)
         validates_with(UniquenessValidator, _merge_attributes(args))
+      end
+
+      # Validates whether or not a field is present - meaning nil or empty.
+      #
+      # @example
+      #   class Person
+      #     include Mongoid::Document
+      #     field :title
+      #
+      #     validates_presence_of :title
+      #   end
+      #
+      # @param [ Array ] args The names of the fields to validate.
+      #
+      # @since 2.4.0
+      def validates_presence_of(*args)
+        validates_with(PresenceValidator, _merge_attributes(args))
       end
 
       protected

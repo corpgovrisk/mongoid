@@ -7,7 +7,7 @@ describe Mongoid::Relations::Embedded::Many do
       Quiz, Role, Patient, Product, Purchase ].map(&:delete_all)
   end
 
-  [ :<<, :push, :concat ].each do |method|
+  [ :<<, :push ].each do |method|
 
     describe "##{method}" do
 
@@ -51,6 +51,47 @@ describe Mongoid::Relations::Embedded::Many do
 
         it "sets the index on the child" do
           address._index.should == 0
+        end
+
+        context "with a limiting default scope" do
+
+          context "when the document matches the scope" do
+
+            let(:active) do
+              Appointment.new
+            end
+
+            before do
+              person.appointments.send(method, active)
+            end
+
+            it "appends to the target" do
+              person.appointments.target.should eq([ active ])
+            end
+
+            it "appends to the _unscoped" do
+              person.appointments.send(:_unscoped).should eq([ active ])
+            end
+          end
+
+          context "when the document does not match the scope" do
+
+            let(:inactive) do
+              Appointment.new(:active => false)
+            end
+
+            before do
+              person.appointments.send(method, inactive)
+            end
+
+            it "appends to the target" do
+              person.appointments.target.should eq([ inactive ])
+            end
+
+            it "appends to the _unscoped" do
+              person.appointments.send(:_unscoped).should eq([ inactive ])
+            end
+          end
         end
       end
 
@@ -185,6 +226,10 @@ describe Mongoid::Relations::Embedded::Many do
 
       it "sets the target of the relation" do
         person.addresses.should == [ address ]
+      end
+
+      it "sets the _unscoped of the relation" do
+        person.addresses.send(:_unscoped).should eq([ address ])
       end
 
       it "sets the base on the inverse relation" do
@@ -464,6 +509,10 @@ describe Mongoid::Relations::Embedded::Many do
           person.addresses.should be_empty
         end
 
+        it "sets the unscoped to empty" do
+          person.addresses.send(:_unscoped).should be_empty
+        end
+
         it "removes the inverse relation" do
           address.addressable.should be_nil
         end
@@ -647,6 +696,77 @@ describe Mongoid::Relations::Embedded::Many do
     end
   end
 
+  describe "#as_document" do
+
+    let!(:person) do
+      Person.create(:ssn => "243-78-2437")
+    end
+
+    context "when the relation has no default scope" do
+
+      let!(:address) do
+        person.addresses.create(:street => "one")
+      end
+
+      let(:document) do
+        person.reload.addresses.as_document
+      end
+
+      it "returns the documents as an array of hashes" do
+        document.should eq([ address.as_document ])
+      end
+    end
+
+    context "when the relation has a default scope" do
+
+      context "when the default scope sorts" do
+
+        let(:cough) do
+          Symptom.new(:name => "cough")
+        end
+
+        let(:headache) do
+          Symptom.new(:name => "headache")
+        end
+
+        before do
+          person.symptoms.concat([ headache, cough ])
+        end
+
+        let(:document) do
+          person.reload.symptoms.as_document
+        end
+
+        it "returns the unscoped documents as an array of hashes" do
+          document.should eq([ headache.as_document, cough.as_document ])
+        end
+      end
+
+      context "when the default scope limits" do
+
+        let(:active) do
+          Appointment.new
+        end
+
+        let(:inactive) do
+          Appointment.new(:active => false)
+        end
+
+        before do
+          person.appointments.concat([ active, inactive ])
+        end
+
+        let(:document) do
+          person.reload.appointments.as_document
+        end
+
+        it "returns the unscoped documents as an array of hashes" do
+          document.should eq([ active.as_document, inactive.as_document ])
+        end
+      end
+    end
+  end
+
   describe "#avg" do
 
     let(:person) do
@@ -714,6 +834,10 @@ describe Mongoid::Relations::Embedded::Many do
 
         it "appends to the target" do
           person.addresses.should == [ address ]
+        end
+
+        it "appends to the unscoped" do
+          person.addresses.send(:_unscoped).should eq([ address ])
         end
 
         it "sets the base on the inverse relation" do
@@ -838,6 +962,10 @@ describe Mongoid::Relations::Embedded::Many do
           person.addresses.should be_empty
         end
 
+        it "clears the unscoped" do
+          person.addresses.send(:_unscoped).should be_empty
+        end
+
         it "marks the documents as deleted" do
           address.should be_destroyed
         end
@@ -883,6 +1011,167 @@ describe Mongoid::Relations::Embedded::Many do
 
       it "clears out the relation" do
         person.addresses.should be_empty
+      end
+    end
+  end
+
+  describe "#concat" do
+
+    context "when the parent is a new record" do
+
+      let(:person) do
+        Person.new
+      end
+
+      let(:address) do
+        Address.new
+      end
+
+      before do
+        person.addresses.concat([ address ])
+      end
+
+      it "appends to the target" do
+        person.addresses.should == [ address ]
+      end
+
+      it "appends to the unscoped" do
+        person.addresses.send(:_unscoped).should eq([ address ])
+      end
+
+      it "sets the base on the inverse relation" do
+        address.addressable.should == person
+      end
+
+      it "sets the same instance on the inverse relation" do
+        address.addressable.should eql(person)
+      end
+
+      it "does not save the new document" do
+        address.should_not be_persisted
+      end
+
+      it "sets the parent on the child" do
+        address._parent.should == person
+      end
+
+      it "sets the metadata on the child" do
+        address.metadata.should_not be_nil
+      end
+
+      it "sets the index on the child" do
+        address._index.should == 0
+      end
+    end
+
+    context "when the parent is not a new record" do
+
+      let(:person) do
+        Person.create(:ssn => "234-44-4432")
+      end
+
+      let(:address) do
+        Address.new
+      end
+
+      before do
+        person.addresses.concat([ address ])
+      end
+
+      it "saves the new document" do
+        address.should be_persisted
+      end
+    end
+
+    context "when appending more than one document at once" do
+
+      let(:person) do
+        Person.create(:ssn => "234-44-4432")
+      end
+
+      let(:address_one) do
+        Address.new
+      end
+
+      let(:address_two) do
+        Address.new
+      end
+
+      before do
+        person.addresses.concat([ address_one, address_two ])
+      end
+
+      it "saves the first document" do
+        address_one.should be_persisted
+      end
+
+      it "saves the second document" do
+        address_two.should be_persisted
+      end
+    end
+
+    context "when the parent and child have a cyclic relation" do
+
+      context "when the parent is a new record" do
+
+        let(:parent_role) do
+          Role.new
+        end
+
+        let(:child_role) do
+          Role.new
+        end
+
+        before do
+          parent_role.child_roles.concat([ child_role ])
+        end
+
+        it "appends to the target" do
+          parent_role.child_roles.should == [ child_role ]
+        end
+
+        it "sets the base on the inverse relation" do
+          child_role.parent_role.should == parent_role
+        end
+
+        it "sets the same instance on the inverse relation" do
+          child_role.parent_role.should eql(parent_role)
+        end
+
+        it "does not save the new document" do
+          child_role.should_not be_persisted
+        end
+
+        it "sets the parent on the child" do
+          child_role._parent.should == parent_role
+        end
+
+        it "sets the metadata on the child" do
+          child_role.metadata.should_not be_nil
+        end
+
+        it "sets the index on the child" do
+          child_role._index.should == 0
+        end
+      end
+
+      context "when the parent is not a new record" do
+
+        let(:parent_role) do
+          Role.create(:name => "CEO")
+        end
+
+        let(:child_role) do
+          Role.new(:name => "COO")
+        end
+
+        before do
+          parent_role.child_roles.concat([ child_role ])
+        end
+
+        it "saves the new document" do
+          child_role.should be_persisted
+        end
       end
     end
   end
@@ -940,6 +1229,10 @@ describe Mongoid::Relations::Embedded::Many do
 
       it "appends to the target" do
         person.reload.addresses.should == [ address ]
+      end
+
+      it "appends to the unscoped" do
+        person.reload.addresses.send(:_unscoped).should eq([ address ])
       end
 
       it "sets the base on the inverse relation" do
@@ -1031,6 +1324,10 @@ describe Mongoid::Relations::Embedded::Many do
         person.addresses.should == [ address ]
       end
 
+      it "appends to the unscoped" do
+        person.addresses.send(:_unscoped).should eq([ address ])
+      end
+
       it "sets the base on the inverse relation" do
         address.addressable.should == person
       end
@@ -1086,12 +1383,16 @@ describe Mongoid::Relations::Embedded::Many do
 
     context "when the document exists in the relation" do
 
-      before do
-        @deleted = person.addresses.delete(address_one)
+      let!(:deleted) do
+        person.addresses.delete(address_one)
       end
 
       it "deletes the document" do
         person.addresses.should == [ address_two ]
+      end
+
+      it "deletes the document from the unscoped" do
+        person.addresses.send(:_unscoped).should eq([ address_two ])
       end
 
       it "reindexes the relation" do
@@ -1099,7 +1400,7 @@ describe Mongoid::Relations::Embedded::Many do
       end
 
       it "returns the document" do
-        @deleted.should == address_one
+        deleted.should == address_one
       end
     end
 
@@ -1140,6 +1441,10 @@ describe Mongoid::Relations::Embedded::Many do
 
           it "removes the matching documents" do
             person.addresses.size.should == 1
+          end
+
+          it "removes from the unscoped" do
+            person.addresses.send(:_unscoped).size.should eq(1)
           end
 
           it "returns the number deleted" do
@@ -1316,7 +1621,7 @@ describe Mongoid::Relations::Embedded::Many do
       end
 
       it "returns true" do
-        person.addresses.exists?.should == true
+        person.addresses.exists?.should be_true
       end
     end
 
@@ -1327,7 +1632,7 @@ describe Mongoid::Relations::Embedded::Many do
       end
 
       it "returns false" do
-        person.addresses.exists?.should == false
+        person.addresses.exists?.should be_false
       end
     end
   end
@@ -2334,6 +2639,179 @@ describe Mongoid::Relations::Embedded::Many do
 
       it "keeps the address on the previous document" do
         person_one.addresses.should eq([ address ])
+      end
+    end
+  end
+
+  context "when the relation has a default scope" do
+
+    let!(:person) do
+      Person.create(:ssn => "243-11-1111")
+    end
+
+    context "when the default scope is a sort" do
+
+      let(:cough) do
+        Symptom.new(:name => "cough")
+      end
+
+      let(:headache) do
+        Symptom.new(:name => "headache")
+      end
+
+      let(:nausea) do
+        Symptom.new(:name => "nausea")
+      end
+
+      before do
+        person.symptoms.concat([ nausea, cough, headache ])
+      end
+
+      context "when accessing the relation" do
+
+        let(:symptoms) do
+          person.reload.symptoms
+        end
+
+        it "applies the default scope" do
+          symptoms.should eq([ cough, headache, nausea ])
+        end
+      end
+
+      context "when modifying the relation" do
+
+        let(:constipation) do
+          Symptom.new(:name => "constipation")
+        end
+
+        before do
+          person.symptoms.push(constipation)
+        end
+
+        context "when reloading" do
+
+          let(:symptoms) do
+            person.reload.symptoms
+          end
+
+          it "applies the default scope" do
+            symptoms.should eq([ constipation, cough, headache, nausea ])
+          end
+        end
+      end
+
+      context "when unscoping the relation" do
+
+        let(:unscoped) do
+          person.reload.symptoms.unscoped
+        end
+
+        it "removes the default scope" do
+          unscoped.should eq([ nausea, cough, headache ])
+        end
+      end
+    end
+  end
+
+  context "when indexing the documents" do
+
+    let!(:person) do
+      Person.create(:ssn => "456-33-3333")
+    end
+
+    context "when the documents have a limiting default scope" do
+
+      let(:active) do
+        Appointment.new
+      end
+
+      let(:inactive) do
+        Appointment.new(:active => false)
+      end
+
+      before do
+        person.appointments.concat([ inactive, active ])
+      end
+
+      let(:relation) do
+        person.reload.appointments
+      end
+
+      it "retains the unscoped index for the excluded document" do
+        relation.send(:_unscoped).first._index.should eq(0)
+      end
+
+      it "retains the unscoped index for the included document" do
+        relation.first._index.should eq(1)
+      end
+
+      context "when a reindexing operation occurs" do
+
+        before do
+          relation.send(:reindex)
+        end
+
+        it "retains the unscoped index for the excluded document" do
+          relation.send(:_unscoped).first._index.should eq(0)
+        end
+
+        it "retains the unscoped index for the included document" do
+          relation.first._index.should eq(1)
+        end
+      end
+    end
+  end
+
+  context "when the embedded document has an array field" do
+
+    let!(:person) do
+      Person.create(:ssn => "673-11-2322")
+    end
+
+    let!(:video) do
+      person.videos.create
+    end
+
+    context "when saving the array on a persisted document" do
+
+      before do
+        video.genres = [ "horror", "scifi" ]
+        video.save
+      end
+
+      it "sets the value" do
+        video.genres.should eq([ "horror", "scifi" ])
+      end
+
+      it "persists the value" do
+        video.reload.genres.should eq([ "horror", "scifi" ])
+      end
+
+      context "when reloading the parent" do
+
+        let!(:loaded_person) do
+          Person.find(person.id)
+        end
+
+        let!(:loaded_video) do
+          loaded_person.videos.find(video.id)
+        end
+
+        context "when writing a new array value" do
+
+          before do
+            loaded_video.genres = [ "comedy" ]
+            loaded_video.save
+          end
+
+          it "sets the new value" do
+            loaded_video.genres.should eq([ "comedy" ])
+          end
+
+          it "persists the new value" do
+            loaded_video.reload.genres.should eq([ "comedy" ])
+          end
+        end
       end
     end
   end

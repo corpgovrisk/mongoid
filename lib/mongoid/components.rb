@@ -8,6 +8,8 @@ module Mongoid #:nodoc
     included do
       extend ActiveModel::Translation
       extend Mongoid::Finders
+
+      class_attribute :paranoid
     end
 
     include ActiveModel::Conversion
@@ -64,6 +66,7 @@ module Mongoid #:nodoc
       Mongoid::NestedAttributes,
       Mongoid::Persistence,
       Mongoid::Relations,
+      Mongoid::Relations::Proxy,
       Mongoid::Safety,
       Mongoid::Serialization,
       Mongoid::Sharding,

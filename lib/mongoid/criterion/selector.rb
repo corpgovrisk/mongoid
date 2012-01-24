@@ -85,11 +85,27 @@ module Mongoid #:nodoc:
       # @since 1.0.0
       def try_to_typecast(key, value)
         access = key.to_s
-        if !fields.has_key?(access) && !aliased_fields.has_key?(access)
-          return value
+        if field = fields[key.to_s] || fields[aliased_fields[key.to_s]]
+          typecast_value_for(field, value)
+        elsif proper_and_or_value?(key, value)
+          handle_and_or_value(value)
+        else
+          value
         end
-        field = fields[access] || fields[aliased_fields[access]]
-        typecast_value_for(field, value)
+      end
+
+      def proper_and_or_value?(key, value)
+        ["$and", "$or"].include?(key) &&
+          value.is_a?(Array) &&
+          value.all?{ |e| e.is_a?(Hash) }
+      end
+
+      def handle_and_or_value(values)
+        [].tap do |result|
+           result.push(*values.map do |value|
+            Hash[value.map{ |key, value| [key, try_to_typecast(key, value)] }]
+          end)
+        end
       end
 
       # Get the typecast value for the defined field.
@@ -104,7 +120,7 @@ module Mongoid #:nodoc:
       #
       # @since 1.0.0
       def typecast_value_for(field, value)
-        return field.serialize(value) if field.type === value
+        return field.selection(value) if field.type === value
         case value
         when Hash
           value = value.dup
@@ -124,7 +140,7 @@ module Mongoid #:nodoc:
           if field.type == Array
             Serialization.mongoize(value, value.class)
           else
-            field.serialize(value)
+            field.selection(value)
           end
         end
       end

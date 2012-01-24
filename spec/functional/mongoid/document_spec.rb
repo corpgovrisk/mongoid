@@ -6,6 +6,17 @@ describe Mongoid::Document do
     Person.delete_all
   end
 
+  context "when a model name conflicts with a mongoid internal" do
+
+    let(:scheduler) do
+      Scheduler.new
+    end
+
+    it "allows the model name" do
+      scheduler.strategy.should be_a(Strategy)
+    end
+  end
+
   describe "#initialize" do
 
     context "when providing a block" do
@@ -230,19 +241,23 @@ describe Mongoid::Document do
     end
   end
 
-  context "chaining criteria scopes" do
+  context "when chaining criteria scopes" do
 
-    before do
-      @one = Person.create(:title => "Mr", :age => 55, :terms => true, :ssn => "q")
-      @two = Person.create(:title => "Sir", :age => 55, :terms => true, :ssn => "w")
-      @three = Person.create(:title => "Sir", :age => 35, :terms => true, :ssn => "e")
-      @four = Person.create(:title => "Sir", :age => 55, :terms => false, :ssn => "r")
+    let!(:knight) do
+      Person.create(
+        :title => "Sir",
+        :age => 75,
+        :terms => true,
+        :ssn => "123-11-1111"
+      )
+    end
+
+    let(:chained) do
+      Person.old.accepted.knight
     end
 
     it "finds by the merged criteria" do
-      people = Person.old.accepted.knight
-      people.count.should == 1
-      people.first.should == @two
+      chained.should eq([ knight ])
     end
   end
 
@@ -296,35 +311,11 @@ describe Mongoid::Document do
       @person = Person.create(:title => "Test")
     end
 
-    context "finding all documents" do
-
-      it "returns an array of documents based on the selector provided" do
-        documents = Person.find(:all, :conditions => { :title => "Test"})
-        documents.first.title.should == "Test"
-      end
-    end
-
-    context "finding first document" do
-
-      it "returns the first document based on the selector provided" do
-        person = Person.find(:first, :conditions => { :title => "Test" })
-        person.title.should == "Test"
-      end
-    end
-
     context "finding by id" do
 
       it "finds the document by the supplied id" do
         person = Person.find(@person.id)
         person.id.should == @person.id
-      end
-    end
-
-    context "limiting result fields" do
-
-      it "adds the type field to the options" do
-        people = Person.all(:fields => [ :title ])
-        people.first.title.should == "Test"
       end
     end
   end
@@ -460,7 +451,7 @@ describe Mongoid::Document do
       end
 
       it "saves the entire graph up from the has_one" do
-        person = Person.first(:conditions => { :title => "Sir" })
+        person = Person.where(:title => "Sir").first
         person.should == @person
       end
     end
@@ -472,7 +463,7 @@ describe Mongoid::Document do
       end
 
       it "saves the entire graph up from the embeds_many" do
-        person = Person.first(:conditions => { :title => "Sir" })
+        person = Person.where(:title => "Sir").first
         person.should == @person
       end
     end

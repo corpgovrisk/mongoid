@@ -18,6 +18,7 @@ class Person
   field :lunch_time, :type => Time
   field :aliases, :type => Array
   field :map, :type => Hash
+  field :map_with_default, :type => Hash, :default => {}
   field :score, :type => Integer
   field :blood_alcohol_content, :type => Float, :default => lambda{ 0.0 }
   field :last_drink_taken_at, :type => Date, :default => lambda { 1.day.ago.in_time_zone("Alaska") }
@@ -54,6 +55,8 @@ class Person
   embeds_many :address_components, :validate => false
   embeds_many :paranoid_phones, :validate => false
   embeds_many :services, :cascade_callbacks => true
+  embeds_many :symptoms, :validate => false
+  embeds_many :appointments, :validate => false
 
   embeds_one :pet, :class_name => "Animal"
   embeds_one :name, :as => :namable, :validate => false do
@@ -67,6 +70,7 @@ class Person
   embeds_one :quiz, :validate => false
 
   accepts_nested_attributes_for :addresses
+  accepts_nested_attributes_for :paranoid_phones
   accepts_nested_attributes_for :name, :update_only => true
   accepts_nested_attributes_for :pet, :allow_destroy => true
   accepts_nested_attributes_for :game, :allow_destroy => true
@@ -165,8 +169,19 @@ class Person
   def foo
     'i_am_foo'
   end
-end
 
-class Doctor < Person
-  field :specialty
+  def preference_names=(names)
+    names.split(",").each do |name|
+      preference = Preference.where(:name => name).first
+      if preference
+        self.preferences << preference
+      else
+        preferences.build(:name => name)
+      end
+    end
+  end
+
+  def set_on_map_with_default=(value)
+    self.map_with_default["key"] = value
+  end
 end

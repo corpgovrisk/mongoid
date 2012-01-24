@@ -19,7 +19,7 @@ module Mongoid #:nodoc
       def env_name
         return Rails.env if defined?(Rails)
         return Sinatra::Base.environment.to_s if defined?(Sinatra)
-        ENV["RACK_ENV"] || raise(Errors::NoEnvironment.new)
+        ENV["RACK_ENV"] || ENV["MONGOID_ENV"] || raise(Errors::NoEnvironment.new)
       end
 
       # Load the yaml from the provided path and return the settings for the

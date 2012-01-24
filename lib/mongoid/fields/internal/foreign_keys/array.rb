@@ -4,9 +4,36 @@ module Mongoid #:nodoc:
     module Internal #:nodoc:
       module ForeignKeys #:nodoc:
 
-        # Defines the behaviour for array fields.
+        # Defines the behaviour for array foreign key fields.
         class Array
           include Serializable
+
+          # Adds the atomic changes for this type of resizable field.
+          #
+          # @example Add the atomic changes.
+          #   field.add_atomic_changes(doc, "key", {}, [], [])
+          #
+          # @param [ Document ] document The document to add to.
+          # @param [ String ] name The name of the field.
+          # @param [ String ] key The atomic location of the field.
+          # @param [ Hash ] mods The current modifications.
+          # @param [ Array ] new The new elements to add.
+          # @param [ Array ] old The old elements getting removed.
+          #
+          # @since 2.4.0
+          def add_atomic_changes(document, name, key, mods, new, old)
+            pushes = (new || []) - (old || [])
+            pulls = (old || []) - (new || [])
+            if old.nil?
+              mods[key] = pushes
+            elsif !pushes.empty? && !pulls.empty?
+              mods[key] = document.attributes[name]
+            elsif !pushes.empty?
+              document.atomic_array_add_to_sets[key] = pushes
+            elsif !pulls.empty?
+              document.atomic_array_pulls[key] = pulls
+            end
+          end
 
           # Is the field a BSON::ObjectId?
           #
@@ -20,6 +47,16 @@ module Mongoid #:nodoc:
             @object_id_field ||=
               metadata.polymorphic? ? true : metadata.klass.using_object_ids?
           end
+
+          # Array fields are resizable.
+          #
+          # @example Is this field resizable?
+          #   field.resizable?
+          #
+          # @return [ true ] Always true.
+          #
+          # @since 2.4.0
+          def resizable?; true; end
 
           # Serialize the object from the type defined in the model to a MongoDB
           # compatible object to store.

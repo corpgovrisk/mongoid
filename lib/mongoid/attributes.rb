@@ -77,7 +77,7 @@ module Mongoid #:nodoc:
     def respond_to?(*args)
       (Mongoid.allow_dynamic_fields &&
         attributes &&
-        attributes.has_key?(args.first.to_s)
+        attributes.has_key?(args.first.to_s.reader)
       ) || super
     end
 
@@ -157,24 +157,6 @@ module Mongoid #:nodoc:
 
     protected
 
-    # Set any missing default values in the attributes.
-    #
-    # @example Get the raw attributes after defaults have been applied.
-    #   person.apply_defaults
-    #
-    # @return [ Hash ] The raw attributes.
-    #
-    # @since 2.0.0.rc.8
-    def apply_defaults
-      defaults.each do |name|
-        unless attributes.has_key?(name)
-          if field = fields[name]
-            attributes[name] = field.eval_default(self)
-          end
-        end
-      end
-    end
-
     # Used for allowing accessor methods for dynamic attributes.
     #
     # @param [ String, Symbol ] name The name of the method.
@@ -226,8 +208,12 @@ module Mongoid #:nodoc:
           alias :#{name} :#{original}
           alias :#{name}= :#{original}=
           alias :#{name}? :#{original}?
+          alias :#{name}_change :#{original}_change
+          alias :#{name}_changed? :#{original}_changed?
+          alias :reset_#{name}! :reset_#{original}!
+          alias :#{name}_was :#{original}_was
+          alias :#{name}_will_change! :#{original}_will_change!
         RUBY
-        super
       end
     end
   end

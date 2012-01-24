@@ -127,11 +127,13 @@ module Mongoid #:nodoc:
         @new_record = true
         @attributes ||= {}
         options ||= {}
+        apply_non_proc_defaults
+        identify if using_object_ids?
         process(attrs, options[:as] || :default, !options[:without_protection]) do
-          identify
-          apply_defaults
+          identify unless using_object_ids?
           yield(self) if block_given?
         end
+        apply_proc_defaults
         run_callbacks(:initialize) { self }
       end
     end
@@ -145,7 +147,11 @@ module Mongoid #:nodoc:
     #
     # @since 2.4.0
     def to_key
-      new_record? ? nil : [ id ]
+      if destroyed?
+        [ id ]
+      else
+        persisted? ? [ id ] : nil
+      end
     end
 
     # Return an array with this +Document+ only in it.
@@ -168,7 +174,7 @@ module Mongoid #:nodoc:
     # @return [ Hash ] A hash of all attributes in the hierarchy.
     def as_document
       attributes.tap do |attrs|
-        break if frozen?
+        return attrs if frozen?
         relations.each_pair do |name, meta|
           if meta.embedded?
             relation = send(name)
@@ -286,7 +292,7 @@ module Mongoid #:nodoc:
         attributes = attrs || {}
         allocate.tap do |doc|
           doc.instance_variable_set(:@attributes, attributes)
-          doc.send(:apply_defaults)
+          doc.apply_defaults
           IdentityMap.set(doc) unless _loading_revision?
           doc.run_callbacks(:initialize) { doc }
         end

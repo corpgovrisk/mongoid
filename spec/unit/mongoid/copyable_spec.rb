@@ -11,7 +11,13 @@ describe Mongoid::Copyable do
     describe "##{method}" do
 
       let(:person) do
-        Person.new(:title => "Sir", :ssn => "234-33-3123", :version => 4)
+        Person.new(
+          :title => "Sir",
+          :ssn => "234-33-3123",
+          :version => 4,
+          :created_at => Time.now,
+          :updated_at => Time.now
+        )
       end
 
       let!(:address) do
@@ -93,8 +99,8 @@ describe Mongoid::Copyable do
           Mongoid::Copyable::COPYABLES.each do |name|
 
             it "dups #{name}" do
-              copy.instance_variable_get(name).should_not
-                be_eql(person.instance_variable_get(name))
+              copy.instance_variable_get("@#{name}").should_not
+                be_eql(person.instance_variable_get("@#{name}"))
             end
           end
 
@@ -186,8 +192,8 @@ describe Mongoid::Copyable do
           Mongoid::Copyable::COPYABLES.each do |name|
 
             it "dups #{name}" do
-              copy.instance_variable_get(name).should_not
-                be_eql(person.instance_variable_get(name))
+              copy.instance_variable_get("@#{name}").should_not
+                be_eql(person.instance_variable_get("@#{name}"))
             end
           end
 
@@ -269,8 +275,8 @@ describe Mongoid::Copyable do
         Mongoid::Copyable::COPYABLES.each do |name|
 
           it "dups #{name}" do
-            copy.instance_variable_get(name).should_not
-              be_eql(person.instance_variable_get(name))
+            copy.instance_variable_get("@#{name}").should_not
+              be_eql(person.instance_variable_get("@#{name}"))
           end
         end
 

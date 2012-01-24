@@ -29,7 +29,7 @@ describe Mongoid::Fields do
 
         after do
           Person.fields.delete("array_testing")
-          Person.defaults.delete_one("array_testing")
+          Person.non_proc_defaults.delete_one("array_testing")
         end
 
         it "returns an equal object of a different instance" do
@@ -68,7 +68,7 @@ describe Mongoid::Fields do
 
           after do
             Person.fields.delete("generated_testing")
-            Person.defaults.delete_one("generated_testing")
+            Person.non_proc_defaults.delete_one("generated_testing")
           end
 
           it "returns an equal object of a different instance" do
@@ -90,7 +90,7 @@ describe Mongoid::Fields do
 
           after do
             Person.fields.delete("rank")
-            Person.defaults.delete_one("rank")
+            Person.proc_defaults.delete_one("rank")
           end
 
           it "yields the document to the proc" do
@@ -258,6 +258,61 @@ describe Mongoid::Fields do
       it "uses the alias for the query method" do
         person.expects(:read_attribute).with("aliased")
         person.alias?
+      end
+
+      it "uses the name to write the attribute" do
+        person.expects(:write_attribute).with("aliased", true)
+        person.aliased = true
+      end
+
+      it "uses the name to read the attribute" do
+        person.expects(:read_attribute).with("aliased")
+        person.aliased
+      end
+
+      it "uses the name for the query method" do
+        person.expects(:read_attribute).with("aliased")
+        person.aliased?
+      end
+
+      it "creates dirty methods for the name" do
+        person.should respond_to(:aliased_changed?)
+      end
+
+      it "creates dirty methods for the alias" do
+        person.should respond_to(:alias_changed?)
+      end
+
+      context "when changing the name" do
+
+        before do
+          person.aliased = true
+        end
+
+        it "sets name_changed?" do
+          person.aliased_changed?.should be
+        end
+
+        it "sets alias_changed?" do
+          person.alias_changed?.should be
+        end
+
+      end
+
+      context "when changing the alias" do
+
+        before do
+          person.alias = true
+        end
+
+        it "sets name_changed?" do
+          person.aliased_changed?.should be
+        end
+
+        it "sets alias_changed?" do
+          person.alias_changed?.should be
+        end
+
       end
 
       context "when defining a criteria" do

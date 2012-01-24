@@ -11,11 +11,20 @@ require "mocha"
 require "rspec"
 require "ammeter/init"
 
+ENV["MONGOID_SPEC_HOST"] ||= "localhost"
+ENV["MONGOID_SPEC_PORT"] ||= "27017"
+
+HOST = ENV["MONGOID_SPEC_HOST"]
+PORT = ENV["MONGOID_SPEC_PORT"]
+
 LOGGER = Logger.new($stdout)
-DATABASE_ID = Process.pid
+
+def database_id
+  ENV["CI"] ? "mongoid_#{Process.pid}" : "mongoid_test"
+end
 
 Mongoid.configure do |config|
-  database = Mongo::Connection.new.db("mongoid_#{DATABASE_ID}")
+  database = Mongo::Connection.new(HOST, PORT).db(database_id)
   database.add_user("mongoid", "test")
   config.master = database
   config.logger = nil
@@ -65,7 +74,9 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    Mongoid.master.connection.drop_database("mongoid_#{DATABASE_ID}")
+    if ENV["CI"]
+      Mongoid.master.connection.drop_database(database_id)
+    end
   end
 
   # We filter out specs that require authentication to MongoHQ if the

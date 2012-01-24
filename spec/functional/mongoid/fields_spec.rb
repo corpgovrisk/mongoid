@@ -191,6 +191,58 @@ describe Mongoid::Fields do
       Product.new
     end
 
+    context "when the field is an array" do
+
+      before do
+        product.stores = [ "kadewe", "karstadt" ]
+        product.save
+      end
+
+      context "when setting the value to nil" do
+
+        before do
+          product.stores = nil
+          product.save
+        end
+
+        it "allows the set" do
+          product.stores.should be_nil
+        end
+      end
+
+      context "when setting any of the values to nil" do
+
+        before do
+          product.stores = [ "kadewe", nil ]
+          product.save
+        end
+
+        it "allows the set of nil values" do
+          product.stores.should eq([ "kadewe", nil ])
+        end
+
+        it "persists the nil values" do
+          product.reload.stores.should eq([ "kadewe", nil ])
+        end
+      end
+
+      context "when reversing the array values" do
+
+        before do
+          product.stores = [ "karstadt", "kadewe" ]
+          product.save
+        end
+
+        it "reverses the values" do
+          product.stores.should eq([ "karstadt", "kadewe" ])
+        end
+
+        it "persists the changes" do
+          product.reload.stores.should eq([ "karstadt", "kadewe" ])
+        end
+      end
+    end
+
     context "when a field is localized" do
 
       context "when no locale is set" do
@@ -250,6 +302,17 @@ describe Mongoid::Fields do
           )
         end
       end
+    end
+  end
+
+  context "when a setter accesses a field with a default" do
+
+    let(:person) do
+      Person.new(:set_on_map_with_default => "testing")
+    end
+
+    it "sets the default value pre process" do
+      person.map_with_default.should eq({ "key" => "testing" })
     end
   end
 end

@@ -17,21 +17,42 @@ module Mongoid # :nodoc:
         # @example Push a document.
         #   person.addresses.push(address)
         #
+        # @param [ Document, Array<Document> ] *args Any number of documents.
+        def <<(*args)
+          docs = args.flatten
+          return concat(docs) if docs.size > 1
+          if doc = docs.first
+            append(doc)
+            doc.save if persistable? && !_assigning?
+          end
+        end
+        alias :push :<<
+
+        # Appends an array of documents to the relation. Performs a batch
+        # insert of the documents instead of persisting one at a time.
+        #
+        # @note When performing batch inserts the *after* callbacks will get
+        #   executed before the documents have actually been persisted to the
+        #   database due to an issue with Active Support's callback system - we
+        #   cannot explicitly fire the after callbacks by themselves.
+        #
         # @example Concat with other documents.
         #   person.addresses.concat([ address_one, address_two ])
         #
-        # @param [ Document, Array<Document> ] *args Any number of documents.
-        def <<(*args)
+        # @param [ Array<Document> ] documents The docs to add.
+        #
+        # @return [ Array<Document> ] The documents.
+        #
+        # @since 2.4.0
+        def concat(documents)
           atomically(:$pushAll) do
-            args.flatten.each do |doc|
+            documents.each do |doc|
               next unless doc
               append(doc)
-              doc.save if persistable? && !_assigning?
+              doc.save if persistable?
             end
           end
         end
-        alias :concat :<<
-        alias :push :<<
 
         # Builds a new document in the relation and appends it to the target.
         # Takes an optional type if you want to specify a subclass.
@@ -72,7 +93,10 @@ module Mongoid # :nodoc:
         # @return [ Many ] The empty relation.
         def clear
           tap do |proxy|
-            atomically(:$unset) { proxy.delete_all }
+            atomically(:$unset) do
+              proxy.delete_all
+              _unscoped.clear
+            end
           end
         end
 
@@ -146,8 +170,9 @@ module Mongoid # :nodoc:
         # @since 2.0.0.rc.1
         def delete(document)
           target.delete_one(document).tap do |doc|
+            _unscoped.delete_one(doc)
             if doc && !_binding?
-              if _assigning?
+              if _assigning? && !doc.paranoid?
                 base.add_atomic_pull(doc)
               else
                 doc.delete(:suppress => true)
@@ -225,6 +250,8 @@ module Mongoid # :nodoc:
               integrate(doc)
               doc._index = index
             end
+            @_unscoped = target.dup
+            @target = scope(target)
           end
         end
 
@@ -264,7 +291,9 @@ module Mongoid # :nodoc:
                 if replacement.first.is_a?(Hash)
                   replacement = Many.builder(base, metadata, replacement).build
                 end
-                proxy.target = replacement.compact
+                docs = replacement.compact
+                proxy.target = docs
+                self._unscoped = docs.dup
                 if _assigning?
                   base.delayed_atomic_sets[metadata.name.to_s] = proxy.as_document
                 end
@@ -288,23 +317,25 @@ module Mongoid # :nodoc:
         # @since 2.0.0.rc.1
         def as_document
           [].tap do |attributes|
-            target.each do |doc|
-              attributes << doc.as_document
+            _unscoped.each do |doc|
+              attributes.push(doc.as_document)
             end
           end
         end
 
-        # Get a criteria for the embedded documents without the default scoping
-        # applied.
+        # Return the relation with all previous scoping removed. This is the
+        # exact representation of the docs in the database.
         #
-        # @example Get the unscoped criteria.
+        # @example Get the unscoped documents.
         #   person.addresses.unscoped
         #
-        # @return [ Criteria ] The unscoped criteria.
+        # @return [ Criteria ] The unscoped relation.
         #
-        # @since 2.2.1
+        # @since 2.4.0
         def unscoped
-          criteria(false)
+          klass.criteria(true, false).tap do |criterion|
+            criterion.documents = _unscoped
+          end
         end
 
         private
@@ -320,6 +351,7 @@ module Mongoid # :nodoc:
         # @since 2.0.0.rc.1
         def append(document)
           target.push(document)
+          _unscoped.push(document)
           integrate(document)
           document._index = target.size - 1
         end
@@ -345,8 +377,8 @@ module Mongoid # :nodoc:
         #   relation.criteria
         #
         # @return [ Criteria ] A new criteria.
-        def criteria(scoped = true)
-          klass.criteria(true, scoped).tap do |criterion|
+        def criteria
+          klass.criteria(true).tap do |criterion|
             criterion.documents = target
           end
         end
@@ -403,9 +435,27 @@ module Mongoid # :nodoc:
         #
         # @since 2.0.0.rc.1
         def reindex
-          target.each_with_index do |doc, index|
+          _unscoped.each_with_index do |doc, index|
             doc._index = index
           end
+        end
+
+        # Apply the metadata ordering or the default scoping to the provided
+        # documents.
+        #
+        # @example Apply scoping.
+        #   person.addresses.scope(target)
+        #
+        # @param [ Array<Document> ] docs The documents to scope.
+        #
+        # @return [ Array<Document> ] The scoped docs.
+        #
+        # @since 2.4.0
+        def scope(docs)
+          return docs unless metadata.order || metadata.klass.default_scoping?
+          metadata.klass.criteria(true).order_by(metadata.order).tap do |crit|
+            crit.documents = docs
+          end.entries
         end
 
         # Remove all documents from the relation, either with a delete or a
@@ -423,11 +473,38 @@ module Mongoid # :nodoc:
           criteria.size.tap do
             criteria.each do |doc|
               target.delete_one(doc)
+              _unscoped.delete_one(doc)
               doc.send(method, :suppress => true) unless _assigning?
               unbind_one(doc)
             end
             reindex
           end
+        end
+
+        # Get the internal unscoped documents.
+        #
+        # @example Get the unscoped documents.
+        #   relation._unscoped
+        #
+        # @return [ Array<Document> ] The unscoped documents.
+        #
+        # @since 2.4.0
+        def _unscoped
+          @_unscoped ||= []
+        end
+
+        # Set the internal unscoped documents.
+        #
+        # @example Set the unscoped documents.
+        #   relation._unscoped = docs
+        #
+        # @param [ Array<Document> ] docs The documents.
+        #
+        # @return [ Array<Document ] The unscoped docs.
+        #
+        # @since 2.4.0
+        def _unscoped=(docs)
+          @_unscoped = docs
         end
 
         class << self

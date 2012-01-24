@@ -3,12 +3,122 @@
 For instructions on upgrading to newer versions, visit
 [mongoid.org](http://mongoid.org/docs/upgrading.html).
 
-## 2.4.0 \[ In Development \] \[ Branch: master \]
+## 2.4.3 \[ In Development \] \[ Branch: 2.4.0-stable \]
+
+### Resolved Issues
+
+* \#1629 $all and $in criteria on embedded many relations now properly
+  handles regex searches and elements of varying length. (Douwe Maan)
+
+* \#1623 Default scopes no longer break Mongoid::Versioning.
+  (Hans Hasselberg)
+
+## 2.4.2
+
+### Resolved Issues
+
+* \#1627 Validating format now works properly with localized fields.
+  (Douwe Maan)
+
+* \#1617 Relation proxy methods now show up in Mongoid's list of
+  prohibited fields.
+
+* \#1615 Allow a single configuration of host and port for all spec runs,
+  overridden by setting MONGOID_SPEC_HOST and MONGOID_SPEC_PORT env vars.
+
+* \#1610 When versioning paranoid documents and max version is set, hard
+  delete old versions from the embedded relation.
+
+* \#1609 Allow connection retry during cursor iteration as well as all other
+  operations.
+
+* \#1608 Guard against no method errors when passing ids in nested attributes
+  and the documents do not exist.
+
+* \#1605 Remove deprecation warning on rescue responses, Rails 3.2
+
+* \#1602 Preserve structure of $and and $or queries when typecasting.
+
+* \#1600 Uniqueness validation no longer errors when provided a relation.
+
+* \#1599 Make sure enumerable targets yield to what is in memory first when
+  performing #each, not always the unloaded first.
+
+* \#1597 Fix the ability to change the order of array fields with the same
+  elements.
+
+* \#1590 Allow proper serialization of boolean values in criteria where the
+  field is nested inside an array.
+
+## 2.4.1
+
+### Resolved Issues
+
+* \#1593 Arrays on embedded documents now properly atomically update when
+  modified from original version.
+
+* \#1592 Don't swallow exceptions from index generation in the create_indexes
+  rake task.
+
+* \#1589 Allow assignment of empty array to HABTM when no documents are yet
+  loaded into memory.
+
+* \#1587 When a previous value for an array field was an explicit nil, it can
+  now be reset atomically with new values.
+
+* \#1585 `Model#respond_to?` returns true now for the setter when allowing
+  dynamic fields.
+
+* \#1582 Allow nil values to be set in arrays.
+
+* \#1580 Allow arrays to be set to nil post save, and not just empty.
+
+* \#1579 Don't call #to_a on individual set field elements in criterion.
+
+* \#1576 Don't hit database on uniqueness validation if the field getting
+  validated has not changed.
+
+* \#1571 Aliased fields get all the dirty attribute methods and all getters and
+  setters for both the original name and the alias. (Hans Hasselberg)
+
+* \#1568 Fallback to development environment with warning when no env configured.
+
+* \#1565 For fields and foreign keys with non-standard Ruby or database names,
+  use define_method instead of class_eval for creating the accessors and
+  dirty methods.
+
+* \#1557 Internal strategy class no longer conflicts with models.
+
+* \#1551 Parent documents now return `true` for `Model#changed?` if only child
+  (embedded) documents have changed.
+
+* \#1547 Resetting persisted children from a parent save when new waits until post
+  callbacks, mirroring update functionality.
+
+* \#1536 Eager loading now happens when calling `first` or `last` on a
+  criteria if inclusions are specified.
+
+## 2.4.0
 
 ### New Features
 
 * Ranges can now be passed to #where criteria to create a $gte/$lte query under the
   covers. `Person.where(dob: start_date...end_date)`
+
+* Custom serializable fields can now override #selection to provide
+  customized serialization for criteria queries.
+
+* \#1544 Internals use `Array.wrap` instead of `to_a` now where possible.
+
+* \#1511 Presence validation now supports localized fields. (Tiago Rafael Godinho)
+
+* \#1506 `Model.set` will now accept false and nil values. (Marten Veldthuis)
+
+* \#1505 `Model.delete_all/destroy_all` now take either a :conditions hash or
+  the attributes directly.
+
+* \#1504 `Model.recursively_embeds_many` now accepts a :cascade_callbacks
+  option. (Pavel Pravosud)
 
 * \#1496 Mongoid now casts strings back to symbols for symbol fields that
   get saved as strings by another application.
@@ -43,7 +153,54 @@ For instructions on upgrading to newer versions, visit
 
 * \#1362 Aliased fields now properly typecast in criteria.
 
+* \#1337 Array fields, including HABTM many foreign keys now have smarter dirty
+  checking and no longer perform a simple $set if the array has changed. If
+  items have only been added to the array, it performs a $pushAll. If items
+  have only been removed, it performs a $pullAll. If both additions and
+  removals have occurred it performs a $set to avoid conflicting mods.
+
 ### Resolved Issues
+
+* Calling `Document#as_document` on a frozen document on Rubinius returns the
+  attributes instead of nil.
+
+* \#1554 Split application of default values into proc/non-procs, where
+  non-procs get executed immediately during instantiation, and procs get
+  executed after all other values are set.
+
+* \#1553 Combinations of adding and removing values from an array use a $set
+  on the current contents of the array, not the new values.
+
+* \#1546 Dirty changes should be returned in a hash with indifferent access.
+
+* \#1542 Eager loading now respects the options (ie skip, limit) provided to
+  the criteria when fetch the associations.
+
+* \#1530 Don't duplicate added values to arrays via dirty tracking if the
+  array is a foreign key field.
+
+* \#1529 Calling `unscoped` on relational associations now works properly.
+
+* \#1524 Allow access to relations in overridden field setters by pre-setting
+  foreign key default values.
+
+* \#1523 Allow disabling of observers via `disable`. (Jonas Schneider)
+
+* \#1522 Fixed create indexes rake task for Rails 3.2. (Gray Manley)
+
+* \#1517 Fix Mongoid documents to properly work with RSpec's stub_model.
+  (Tiago Rafael Godinho)
+
+* \#1516 Don't duplicate relational many documents on bind.
+
+* \#1515 Mongoid no longer attempts to serialize custom fields on complex
+  criteria by default.
+
+* \#1503 Has many relation substitution now handles any kind of mix of existing
+  and new docs.
+
+* \#1502 Nested attributes on embedded documents respects if the child is
+  paranoid.
 
 * \#1497 Use provided message on failing uniqueness validation. (Justin Etheredge)
 
@@ -72,6 +229,9 @@ For instructions on upgrading to newer versions, visit
 * \#1463 Batch insert consumers are now scoped to collection to avoid persistence
   of documents to other collections in callbacks going to the wrong place.
 
+* \#1462 Assigning has many relations via nested attribtues `*_attributes=` does
+  not autosave the relation.
+
 * \#1461 Fixed serialization of foreign key fields in complex criteria not to
   escape the entire hash.
 
@@ -88,6 +248,9 @@ For instructions on upgrading to newer versions, visit
 
 * \#1439 embedded? should return true when relation defined as cyclic.
 
+* \#1433 Polymorphic nested attributes for embedded and relational 1-1 now
+  update properly.
+
 * \#1426 Frozen documents can now be cloned. (aagrawal2001)
 
 * \#1382 Raise proper error when creating indexes via rake task if index
@@ -96,12 +259,20 @@ For instructions on upgrading to newer versions, visit
 * \#1381, \#1371 The identity map now functions properly with inherited
   documents. (Paul Canavese)
 
+* \#1370 Split concat on embedded arrays into its own method to handle the
+  batch processing due to after callback run execution issues.
+
 * \#1366 Array and hash values now get deep copied for dirty tracking.
 
 * \#1359 Provide ability to not have default scope applied to all named
   scopes via using lambdas.
 
 * \#1333 Fixed errors with custom types that exist in namespaces. (Peter Gumeson)
+
+* \#1259 Default values are treated as dirty if they differ from the database
+  state.
+
+* \#1255 Ensure embedded documents respect the defined default scope.
 
 ## 2.3.4
 
@@ -345,6 +516,11 @@ For instructions on upgrading to newer versions, visit
 
 * Deleting versions created with `Mongoid::Versioning` no longer fires off
   dependent cascading on relations.
+
+## 2.2.5
+
+* This was a small patch release to address 2.2.x Heroku errors during asset
+  compilation.
 
 ## 2.2.4
 

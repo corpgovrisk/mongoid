@@ -128,6 +128,38 @@ module Mongoid # :nodoc:
         alias :clear :nullify
         alias :purge :nullify
 
+        # Substitutes the supplied target documents for the existing documents
+        # in the relation. If the new target is nil, perform the necessary
+        # deletion.
+        #
+        # @example Replace the relation.
+        # person.preferences.substitute([ new_post ])
+        #
+        # @param [ Array<Document> ] replacement The replacement target.
+        #
+        # @return [ Many ] The relation.
+        #
+        # @since 2.0.0.rc.1
+        def substitute(replacement)
+          tap do |proxy|
+            proxy.purge
+            proxy.push(replacement.compact.uniq) unless replacement.blank?
+          end
+        end
+
+        # Get a criteria for the documents without the default scoping
+        # applied.
+        #
+        # @example Get the unscoped criteria.
+        #   person.preferences.unscoped
+        #
+        # @return [ Criteria ] The unscoped criteria.
+        #
+        # @since 2.4.0
+        def unscoped
+          klass.unscoped.any_in(:_id => base.send(metadata.foreign_key))
+        end
+
         private
 
         # Appends the document to the target array, updating the index on the

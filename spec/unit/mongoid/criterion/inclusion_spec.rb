@@ -79,6 +79,21 @@ describe Mongoid::Criterion::Inclusion do
 
   describe "#any_in" do
 
+    context "when querying a set field" do
+
+      let(:time) do
+        Time.now
+      end
+
+      let(:criteria) do
+        Video.any_in(:release_dates => [ time ])
+      end
+
+      it "converts the selector properly" do
+        criteria.selector.should eq({ :release_dates => { "$in" => [ time ] }})
+      end
+    end
+
     context "when providing multiple fields" do
 
       let(:criteria) do
@@ -265,10 +280,6 @@ describe Mongoid::Criterion::Inclusion do
           Post.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -278,7 +289,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           post_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -309,10 +319,6 @@ describe Mongoid::Criterion::Inclusion do
           Post.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -322,7 +328,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           post_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -373,10 +378,6 @@ describe Mongoid::Criterion::Inclusion do
           Game.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -386,7 +387,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           game_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -417,10 +417,6 @@ describe Mongoid::Criterion::Inclusion do
           Game.new(:person_id => person.id)
         end
 
-        let(:fields) do
-          { :fields => { "_id" => 1 }}
-        end
-
         let(:ids) do
           [{ "_id" => person.id }]
         end
@@ -430,7 +426,6 @@ describe Mongoid::Criterion::Inclusion do
         end
 
         before do
-          driver.expects(:find).with({}, fields).returns(ids)
           collection.expects(:find).with({}, {}).returns([ person ])
           game_collection.expects(:find).with(
             { "person_id" => { "$in" => [ person.id ] }}, {}
@@ -570,6 +565,57 @@ describe Mongoid::Criterion::Inclusion do
   end
 
   describe "#where" do
+
+    context "when searching on a custom type" do
+
+      let(:criteria) do
+        Bar.where(:lat_lng => {
+          "$nearSphere" => [ 20, 20 ],
+          "$maxDistance" => 1.5
+        })
+      end
+
+      it "does not convert the selector" do
+        criteria.selector.should eq({
+          :lat_lng => {
+            "$nearSphere" => [ 20, 20 ],
+            "$maxDistance" => 1.5
+          }
+        })
+      end
+    end
+
+    context "when providing a complex criteria with a boolean" do
+
+      context "when the field is not defined" do
+
+        let(:criteria) do
+          Person.where(:service_area => { "$ne" => true })
+        end
+
+        it "creates the proper selector" do
+          criteria.selector.should eq({ :service_area => { "$ne" => true }})
+        end
+      end
+
+      context "when using matches on an existing field" do
+
+        context "when the field is an array" do
+
+          let(:criteria) do
+            Person.where(:aliases.matches => {
+              :verified => { "$ne" => true }
+            })
+          end
+
+          it "properly typecasts the boolean values" do
+            criteria.selector.should eq(
+              { :aliases => { "$elemMatch" => { :verified => { "$ne" => true }}}}
+            )
+          end
+        end
+      end
+    end
 
     context "when provided a hash" do
 

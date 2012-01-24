@@ -172,12 +172,27 @@ describe Mongoid::Dirty do
     end
 
     context "when the attribute has not changed from the default value" do
-      let(:person) do
-        Person.new
+
+      context "when the attribute differs from the persisted value" do
+
+        let(:person) do
+          Person.new
+        end
+
+        it "returns the change" do
+          person.send(:attribute_change, "pets").should eq([ nil, false ])
+        end
       end
 
-      it "returns nil" do
-        person.send(:attribute_change, "pets").should be_nil
+      context "when the attribute does not differ from the persisted value" do
+
+        let(:person) do
+          Person.instantiate("pets" => false)
+        end
+
+        it "returns nil" do
+          person.send(:attribute_change, "pets").should be_nil
+        end
       end
     end
 
@@ -269,12 +284,26 @@ describe Mongoid::Dirty do
 
       context "when the attribute is not enumerable" do
 
-        let!(:person) do
-          Person.new
+        context "when the attribute differs from the persisted value" do
+
+          let!(:person) do
+            Person.new
+          end
+
+          it "returns true" do
+            person.send(:attribute_changed?, "pets").should be_true
+          end
         end
 
-        it "returns false" do
-          person.send(:attribute_changed?, "pets").should be_false
+        context "when the attribute does not differ from the persisted value" do
+
+          let!(:person) do
+            Person.instantiate("pets" => false)
+          end
+
+          it "returns false" do
+            person.send(:attribute_changed?, "pets").should be_false
+          end
         end
       end
 
@@ -487,7 +516,7 @@ describe Mongoid::Dirty do
       end
 
       it "returns an array of changed field names" do
-        person.changed.should eq([ "title" ])
+        person.changed.should include("title")
       end
     end
 
@@ -497,8 +526,8 @@ describe Mongoid::Dirty do
         Person.instantiate({})
       end
 
-      it "returns an empty array" do
-        person.changed.should eq([])
+      it "does not include non changed fields" do
+        person.changed.should_not include("title")
       end
     end
   end
@@ -522,12 +551,12 @@ describe Mongoid::Dirty do
 
     context "when the document has not changed" do
 
-      let(:person) do
-        Person.instantiate
+      let(:acolyte) do
+        Acolyte.instantiate
       end
 
       it "returns false" do
-        person.should_not be_changed
+        acolyte.should_not be_changed
       end
     end
   end
@@ -545,20 +574,26 @@ describe Mongoid::Dirty do
       end
 
       it "returns a hash of changes" do
-        person.changes.should eq(
-          { "title" => [ nil, "Captain Obvious" ] }
+        person.changes["title"].should eq(
+          [ nil, "Captain Obvious" ]
+        )
+      end
+
+      it "returns a hash with indifferent access" do
+        person.changes[:title].should eq(
+          [ nil, "Captain Obvious" ]
         )
       end
     end
 
     context "when the document has not changed" do
 
-      let(:person) do
-        Person.instantiate
+      let(:acolyte) do
+        Acolyte.instantiate
       end
 
       it "returns an empty hash" do
-        person.changes.should be_empty
+        acolyte.changes.should be_empty
       end
     end
   end
@@ -566,6 +601,62 @@ describe Mongoid::Dirty do
   describe "#setters" do
 
     context "when the document has changed" do
+
+      let(:person) do
+        Person.new(:aliases => [ "007" ]).tap do |p|
+          p.new_record = false
+          p.move_changes
+        end
+      end
+
+      context "when an array field has changed" do
+
+        context "when the array has values removed" do
+
+          before do
+            person.aliases.delete_one("007")
+          end
+
+          let!(:setters) do
+            person.setters
+          end
+
+          it "contains array changes in the setters" do
+            setters.should eq({ "aliases" => [] })
+          end
+        end
+
+        context "when the array has values added" do
+
+          before do
+            person.aliases << "008"
+          end
+
+          let!(:setters) do
+            person.setters
+          end
+
+          it "contains array changes in the setters" do
+            setters.should eq({ "aliases" => [ "007", "008" ] })
+          end
+        end
+
+        context "when the array has changed completely" do
+
+          before do
+            person.aliases << "008"
+            person.aliases.delete_one("007")
+          end
+
+          let!(:setters) do
+            person.setters
+          end
+
+          it "does not contain array changes in the setters" do
+            setters.should eq({ "aliases" => [ "008" ]})
+          end
+        end
+      end
 
       context "when the document is a root document" do
 
@@ -578,9 +669,7 @@ describe Mongoid::Dirty do
         end
 
         it "returns a hash of field names and new values" do
-          person.setters.should eq(
-            { "title" => "Captain Obvious" }
-          )
+          person.setters["title"].should eq("Captain Obvious")
         end
       end
 
@@ -630,12 +719,12 @@ describe Mongoid::Dirty do
 
     context "when the document has not changed" do
 
-      let(:person) do
-        Person.instantiate
+      let(:acolyte) do
+        Acolyte.instantiate
       end
 
       it "returns an empty hash" do
-        person.setters.should be_empty
+        acolyte.setters.should be_empty
       end
     end
   end
@@ -724,7 +813,7 @@ describe Mongoid::Dirty do
       end
 
       it "removes the field from the changes" do
-        person.changed.should eq([ "title" ])
+        person.changed.should include("title")
       end
     end
 

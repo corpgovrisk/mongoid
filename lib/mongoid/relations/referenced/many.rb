@@ -29,16 +29,40 @@ module Mongoid #:nodoc:
         #
         # @since 2.0.0.beta.1
         def <<(*args)
+          docs = args.flatten
+          return concat(docs) if docs.size > 1
+          if doc = docs.first
+            append(doc)
+            doc.save if persistable? && !_assigning? && !doc.validated?
+          end
+        end
+        alias :push :<<
+
+        # Appends an array of documents to the relation. Performs a batch
+        # insert of the documents instead of persisting one at a time.
+        #
+        # @note When performing batch inserts the *after* callbacks will get
+        #   executed before the documents have actually been persisted to the
+        #   database due to an issue with Active Support's callback system - we
+        #   cannot explicitly fire the after callbacks by themselves.
+        #
+        # @example Concat with other documents.
+        #   person.posts.concat([ post_one, post_two ])
+        #
+        # @param [ Array<Document> ] documents The docs to add.
+        #
+        # @return [ Array<Document> ] The documents.
+        #
+        # @since 2.4.0
+        def concat(documents)
           batched do
-            args.flatten.each do |doc|
+            documents.each do |doc|
               next unless doc
               append(doc)
-              doc.save if persistable? && !doc.validated?
+              doc.save if persistable?
             end
           end
         end
-        alias :concat :<<
-        alias :push :<<
 
         # Build a new document from the attributes and append it to this
         # relation without saving.
@@ -294,11 +318,33 @@ module Mongoid #:nodoc:
         # @since 2.0.0.rc.1
         def substitute(replacement)
           tap do |proxy|
-            if replacement != proxy.in_memory
+            if replacement
+              new_docs, docs = replacement.compact.uniq, []
+              new_ids = new_docs.map { |doc| doc.id }
+              remove_not_in(new_ids)
+              new_docs.each do |doc|
+                docs.push(doc) if doc.send(metadata.foreign_key) != base.id
+              end
+              proxy.concat(docs)
+            else
               proxy.purge
-              proxy.push(replacement.compact.uniq) if replacement
             end
           end
+        end
+
+        # Get a criteria for the documents without the default scoping
+        # applied.
+        #
+        # @example Get the unscoped criteria.
+        #   person.posts.unscoped
+        #
+        # @return [ Criteria ] The unscoped criteria.
+        #
+        # @since 2.4.0
+        def unscoped
+          klass.unscoped.where(
+            metadata.foreign_key => Conversions.flag(base.id, metadata)
+          )
         end
 
         private
@@ -409,7 +455,7 @@ module Mongoid #:nodoc:
         #
         # @since 2.1.0
         def persistable?
-          _creating? || base.persisted? && !_binding? && !_building?
+          !_binding? && (_creating? || base.persisted? && !_building?)
         end
 
         # Deletes all related documents from the database given the supplied
@@ -433,6 +479,36 @@ module Mongoid #:nodoc:
             target.delete_if do |doc|
               if doc.matches?(selector)
                 unbind_one(doc) and true
+              end
+            end
+          end
+        end
+
+        # Remove all the documents in the proxy that do not have the provided
+        # ids.
+        #
+        # @todo: Durran: Refactor 3.0. Temp for bug fix in 2.4.
+        #
+        # @example Remove all documents without the ids.
+        #   proxy.remove_not_in([ id ])
+        #
+        # @param [ Array<Object> ] ids The ids.
+        #
+        # @since 2.4.0
+        def remove_not_in(ids)
+          removed = criteria.not_in(:_id => ids)
+          if metadata.destructive?
+            removed.delete_all
+          else
+            removed.update(metadata.foreign_key => nil)
+          end
+          in_memory.each do |doc|
+            if !ids.include?(doc.id)
+              unbind_one(doc)
+              added.try { |p| p.delete_one(doc) }
+              loaded.try { |p| p.delete_one(doc) }
+              if metadata.destructive?
+                doc.destroyed = true
               end
             end
           end
@@ -480,14 +556,14 @@ module Mongoid #:nodoc:
           #   Proxy.eager_load(metadata, criteria)
           #
           # @param [ Metadata ] metadata The relation metadata.
-          # @param [ Criteria ] criteria The criteria being used.
+          # @param [ Array<Object> ] ids The ids of the base docs.
           #
           # @return [ Criteria ] The criteria to eager load the relation.
           #
           # @since 2.2.0
-          def eager_load(metadata, criteria)
+          def eager_load(metadata, ids)
             klass, foreign_key = metadata.klass, metadata.foreign_key
-            klass.any_in(foreign_key => criteria.load_ids("_id").uniq).each do |doc|
+            klass.any_in(foreign_key => ids).each do |doc|
               IdentityMap.set_many(doc, foreign_key => doc.send(foreign_key))
             end
           end
